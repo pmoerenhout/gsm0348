@@ -1,8 +1,5 @@
 package ru.tapublog.lib.gsm0348.impl.crypto.mac;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.snksoft.crc.CRC;
 import ru.tapublog.lib.gsm0348.impl.crypto.CipherParameters;
 import ru.tapublog.lib.gsm0348.impl.crypto.Mac;
@@ -12,7 +9,6 @@ import ru.tapublog.lib.gsm0348.impl.crypto.Mac;
  */
 
 public abstract class AbstractCrcMac implements Mac {
-  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractCrcMac.class);
 
   private final String algorithmName;
   private final CRC.Parameters crcParameters;
