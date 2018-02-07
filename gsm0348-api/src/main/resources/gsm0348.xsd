@@ -130,7 +130,6 @@
 
 	<xsd:simpleType name="AlgorithmImplementation">
 		<xsd:restriction base="xsd:string">
-			<xsd:enumeration value='NONE'/>
 			<xsd:enumeration value='ALGORITHM_KNOWN_BY_BOTH_ENTITIES'/>
 			<xsd:enumeration value='DES'/>
 			<xsd:enumeration value='AES'/>
