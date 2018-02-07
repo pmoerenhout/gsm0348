@@ -130,6 +130,7 @@
 
 	<xsd:simpleType name="AlgorithmImplementation">
 		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value='NONE'/>
 			<xsd:enumeration value='ALGORITHM_KNOWN_BY_BOTH_ENTITIES'/>
 			<xsd:enumeration value='DES'/>
 			<xsd:enumeration value='AES'/>
@@ -161,7 +162,6 @@
 			<xsd:enumeration value='DES_CBC'/>
 			<xsd:enumeration value='TRIPLE_DES_CBC_2_KEYS'/>
 			<xsd:enumeration value='TRIPLE_DES_CBC_3_KEYS'/>
-			<xsd:enumeration value='RESERVED'/>
 			<xsd:enumeration value='AES_CMAC'/>
 		</xsd:restriction>
 	</xsd:simpleType>

@@ -18,6 +18,10 @@ public class KIDCoder
 		if(keysetID  < 0 && keysetID > 0xF)
 			throw new CodingException("Cannot decode KID. KID keySetID cannot be <0 and >15");
 
+		if (kid.getAlgorithmImplementation() == null && kid.getCertificationAlgorithmMode() == null){
+			return (byte)(keysetID << 4);
+		}
+
 		switch (kid.getAlgorithmImplementation())
 		{
 			case ALGORITHM_KNOWN_BY_BOTH_ENTITIES:
@@ -49,9 +53,9 @@ public class KIDCoder
 			case TRIPLE_DES_CBC_3_KEYS:
 				algMode = 2;
 				break;
-			case RESERVED:
-				algMode = 3;
-				break;
+//			case RESERVED:
+//				algMode = 3;
+//				break;
 		}
 
 		byte result = (byte)(algImpl + (algMode << 2) + (keysetID << 4));
@@ -70,6 +74,8 @@ public class KIDCoder
 		AlgorithmImplementation resultAlgImpl = null;
 		CertificationAlgorithmMode resultAlgMode = null;
 		switch (certificationMode){
+			case NO_SECURITY:
+				break;
 			case RC:
         switch (algImpl) {
           case 0:
@@ -114,9 +120,9 @@ public class KIDCoder
 							case 2:
 								resultAlgMode = CertificationAlgorithmMode.TRIPLE_DES_CBC_3_KEYS;
 								break;
-							case 3:
-								resultAlgMode = CertificationAlgorithmMode.RESERVED;
-								break;
+//							case 3:
+//								resultAlgMode = CertificationAlgorithmMode.RESERVED;
+//								break;
 							default:
 								throw new CodingException("Cannot encode KID(raw=" + Util.toHex(kid) + "). No such DES algorithm mode(raw="
 										+ Integer.toHexString(algMode) + ")");

@@ -99,32 +99,6 @@ public class PacketBuilderImpl implements PacketBuilder {
       throw new PacketBuilderConfigurationException("CardProfile cannot be null");
     }
 
-    if (cardProfile.getKIC() == null) {
-      throw new PacketBuilderConfigurationException("KIC cannot be null");
-    }
-    if (cardProfile.getKIC().getAlgorithmImplementation() == null) {
-      throw new PacketBuilderConfigurationException("KIC AlgorithmImplementation cannot be null");
-    }
-    if (cardProfile.getKIC().getCipheringAlgorithmMode() == null) {
-      throw new PacketBuilderConfigurationException("KIC CipheringAlgorithmMode cannot be null");
-    }
-    if (cardProfile.getKIC().getKeysetID() < 0x0 || cardProfile.getKIC().getKeysetID() > (byte) 0xf) {
-      throw new PacketBuilderConfigurationException("KIC keySetID cannot be <0 and >15");
-    }
-
-    if (cardProfile.getKID() == null) {
-      throw new PacketBuilderConfigurationException("KID cannot be null");
-    }
-    if (cardProfile.getKID().getAlgorithmImplementation() == null) {
-      throw new PacketBuilderConfigurationException("KID AlgorithmImplementation cannot be null");
-    }
-    if (cardProfile.getKID().getCertificationAlgorithmMode() == null) {
-      throw new PacketBuilderConfigurationException("KID CertificationAlgorithmMode cannot be null");
-    }
-    if (cardProfile.getKID().getKeysetID() < 0x0 || cardProfile.getKID().getKeysetID() > (byte) 0xf) {
-      throw new PacketBuilderConfigurationException("KID keySetID cannot be <0 and >15");
-    }
-
     if (cardProfile.getSPI() == null) {
       throw new PacketBuilderConfigurationException("SPI cannot be null");
     }
@@ -150,6 +124,34 @@ public class PacketBuilderImpl implements PacketBuilder {
     }
     if (cardProfile.getSPI().getResponseSPI().getPoRProtocol() == null) {
       throw new PacketBuilderConfigurationException("ResponseSPI PoRProtocol cannot be null");
+    }
+
+    if (cardProfile.getKIC() == null) {
+      throw new PacketBuilderConfigurationException("KIC cannot be null");
+    }
+    if (cardProfile.getKIC().getAlgorithmImplementation() == null) {
+      throw new PacketBuilderConfigurationException("KIC AlgorithmImplementation cannot be null");
+    }
+    if (cardProfile.getKIC().getCipheringAlgorithmMode() == null) {
+      throw new PacketBuilderConfigurationException("KIC CipheringAlgorithmMode cannot be null");
+    }
+    if (cardProfile.getKIC().getKeysetID() < 0x0 || cardProfile.getKIC().getKeysetID() > (byte) 0xf) {
+      throw new PacketBuilderConfigurationException("KIC keySetID cannot be <0 and >15");
+    }
+
+    if (cardProfile.getKID() == null) {
+      throw new PacketBuilderConfigurationException("KID cannot be null");
+    }
+    if (cardProfile.getSPI().getCommandSPI().getCertificationMode() != CertificationMode.NO_SECURITY) {
+      if (cardProfile.getKID().getAlgorithmImplementation() == null) {
+        throw new PacketBuilderConfigurationException("KID AlgorithmImplementation cannot be null");
+      }
+      if (cardProfile.getKID().getCertificationAlgorithmMode() == null) {
+        throw new PacketBuilderConfigurationException("KID CertificationAlgorithmMode cannot be null");
+      }
+    }
+    if (cardProfile.getKID().getKeysetID() < 0x0 || cardProfile.getKID().getKeysetID() > (byte) 0xf) {
+      throw new PacketBuilderConfigurationException("KID keySetID cannot be <0 and >15");
     }
 
     if (cardProfile.getSecurityBytesType() == null) {
@@ -402,7 +404,7 @@ public class PacketBuilderImpl implements PacketBuilder {
         }
       }
       headerData[PADDING_COUNTER_POSITION] = paddingCounter;
-      LOGGER.debug("Padding counter value: {}", String.format("%X", headerData[PADDING_COUNTER_POSITION]));
+      LOGGER.debug("Padding counter value: {}", String.format("0x%02X", headerData[PADDING_COUNTER_POSITION]));
 
       if (commandPacketSigning) {
         byte[] signData = new byte[headerLenght + dataBytes.length - signatureLength + PACKET_LENGHT_SIZE + paddingCounter];
@@ -420,14 +422,12 @@ public class PacketBuilderImpl implements PacketBuilder {
       }
       System.arraycopy(signature, 0, headerData, SIGNATURE_POSITION, signatureLength);
 
-      LOGGER.debug("Signature value: {} length:{}", Util.toHexString(signature), signature.length);
+      LOGGER.debug("Signature value: {} length: {}", Util.toHexString(signature), signature.length);
 
       if (commandPacketCiphering) {
         LOGGER.debug("Ciphering command");
         byte[] cipherData = new byte[COUNTERS_SIZE + PADDING_COUNTER_SIZE + signatureLength + dataBytes.length];
-        if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug("Ciphering data length {}", cipherData.length);
-        }
+        LOGGER.debug("Ciphering data length: {}", cipherData.length);
         System.arraycopy(countersBytes, 0, cipherData, 0, COUNTERS_SIZE);
         cipherData[5] = paddingCounter;
         System.arraycopy(signature, 0, cipherData, 6, signatureLength);
@@ -534,26 +534,13 @@ public class PacketBuilderImpl implements PacketBuilder {
         responseCode = dataEnc[COUNTERS_SIZE + 1];
         if (dataEnc.length < COUNTERS_SIZE + 2 + signatureLength) {
           throw new Gsm0348Exception(
-              "Packet recovery failure. Possibly because of unexpected security bytes length. Expected: "
-                  + signatureSize);
+              "Packet recovery failure. Possibly because of unexpected security bytes length. Expected: " + signatureSize);
         }
         System.arraycopy(dataEnc, COUNTERS_SIZE + 2, signature, 0, signatureLength);
-        // Modified by Tomas Andersen / Morecom AS 2014.04.08 - TEST CASE: Tomas Andersen Bug #1->
-
-        // Old code->
-//				final int dataSize = dataEnc.length - TAR_SIZE - HEADER_LENGHT_SIZE;
-//				packetData = new byte[dataSize];
-//				System.arraycopy(dataEnc, COUNTERS_SIZE + 2 + signatureLength, packetData, 0, dataSize);
-        // <- End of old code
-        // New code->
         final int dataSize = packetLength - headerLength - HEADER_LENGHT_SIZE;
         final int dataSizeToCopy = dataEnc.length - COUNTERS_SIZE - PADDING_COUNTER_SIZE - RESPONSE_CODE_RESPONSE_SIZE - signatureLength;
-
         packetData = new byte[dataSize];
-
         System.arraycopy(dataEnc, COUNTERS_SIZE + 2 + signatureLength, packetData, 0, dataSizeToCopy);
-//				<- End of new code
-//				End of modification by Tomas Andersen / Morecom AS 2014.04.08 - TEST CASE: Tomas Andersen Bug #1->
       } else {
         System.arraycopy(data, COUNTERS_RESPONSE_POSITION, counters, 0, COUNTERS_SIZE);
         paddingCounter = Util.unsignedByteToInt(data[PADDING_COUNTER_RESPONSE_POSITION]);
@@ -667,10 +654,11 @@ public class PacketBuilderImpl implements PacketBuilder {
 //      LOGGER.debug("KIC value: {}", Util.toHex(headerData[KIC_POSITION]));
 //      headerData[KID_POSITION] = KIDCoder.decode(cardProfile.getKID());
 //      LOGGER.debug("KID value: {}", Util.toHex(headerData[KID_POSITION]));
-      System.arraycopy(cardProfile.getTAR(), 0, headerData, TAR_RESPONSE_POSITION-2, TAR_SIZE);
-      LOGGER.debug("TAR value: {}", Util.toHexArray(Arrays.copyOfRange(headerData, TAR_RESPONSE_POSITION-2, TAR_RESPONSE_POSITION-2 + TAR_SIZE)));
-      System.arraycopy(countersBytes, 0, headerData, COUNTERS_RESPONSE_POSITION-2, COUNTERS_SIZE);
-      LOGGER.debug("COUNTER value: {}", Util.toHexArray(Arrays.copyOfRange(headerData, COUNTERS_RESPONSE_POSITION-2, COUNTERS_RESPONSE_POSITION-2 + COUNTERS_SIZE)));
+      System.arraycopy(cardProfile.getTAR(), 0, headerData, TAR_RESPONSE_POSITION - 2, TAR_SIZE);
+      LOGGER.debug("TAR value: {}", Util.toHexArray(Arrays.copyOfRange(headerData, TAR_RESPONSE_POSITION - 2, TAR_RESPONSE_POSITION - 2 + TAR_SIZE)));
+      System.arraycopy(countersBytes, 0, headerData, COUNTERS_RESPONSE_POSITION - 2, COUNTERS_SIZE);
+      LOGGER.debug("COUNTER value: {}",
+          Util.toHexArray(Arrays.copyOfRange(headerData, COUNTERS_RESPONSE_POSITION - 2, COUNTERS_RESPONSE_POSITION - 2 + COUNTERS_SIZE)));
 
       if (responsePacketCiphering) {
         final int dataSize = COUNTERS_SIZE + PADDING_COUNTER_SIZE + signatureLength + dataBytes.length;
@@ -679,11 +667,11 @@ public class PacketBuilderImpl implements PacketBuilder {
           paddingCounter = (byte) (cipherBlockSize - remainder);
         }
       }
-      headerData[PADDING_COUNTER_RESPONSE_POSITION-2] = paddingCounter;
-      LOGGER.debug("Padding counter value: {}", String.format("%X", headerData[PADDING_COUNTER_RESPONSE_POSITION-2]));
+      headerData[PADDING_COUNTER_RESPONSE_POSITION - 2] = paddingCounter;
+      LOGGER.debug("Padding counter value: {}", String.format("%X", headerData[PADDING_COUNTER_RESPONSE_POSITION - 2]));
 
-      headerData[STATUS_CODE_RESPONSE_POSITION-2] = (byte)(responseStatus.ordinal() & (byte)0xFF);
-      LOGGER.debug("Response status code value: {}", String.format("%X", headerData[STATUS_CODE_RESPONSE_POSITION-2]));
+      headerData[STATUS_CODE_RESPONSE_POSITION - 2] = (byte) (responseStatus.ordinal() & (byte) 0xFF);
+      LOGGER.debug("Response status code value: {}", String.format("%X", headerData[STATUS_CODE_RESPONSE_POSITION - 2]));
 
       if (responsePacketSigning) {
         byte[] signData = new byte[headerLenght + dataBytes.length - signatureLength + PACKET_LENGHT_SIZE + paddingCounter];
@@ -699,7 +687,7 @@ public class PacketBuilderImpl implements PacketBuilder {
       if (signature.length != signatureLength) {
         throw new Gsm0348Exception("The generated signature length doesn't match the expected length");
       }
-      System.arraycopy(signature, 0, headerData, SIGNATURE_RESPONSE_POSITION-3, signatureLength);
+      System.arraycopy(signature, 0, headerData, SIGNATURE_RESPONSE_POSITION - 3, signatureLength);
 
       LOGGER.debug("Signature value: {} length:{}", Util.toHexString(signature), signature.length);
 
