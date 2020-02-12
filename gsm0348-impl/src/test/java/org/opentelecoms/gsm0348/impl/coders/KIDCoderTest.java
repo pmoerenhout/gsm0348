@@ -1,12 +1,12 @@
-package ru.tapublog.lib.gsm0348.impl.coders;
+package org.opentelecoms.gsm0348.impl.coders;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.opentelecoms.gsm0348.api.model.AlgorithmImplementation;
+import org.opentelecoms.gsm0348.api.model.CertificationAlgorithmMode;
+import org.opentelecoms.gsm0348.api.model.CertificationMode;
+import org.opentelecoms.gsm0348.api.model.KID;
 
-import ru.tapublog.lib.gsm0348.api.model.AlgorithmImplementation;
-import ru.tapublog.lib.gsm0348.api.model.CertificationAlgorithmMode;
-import ru.tapublog.lib.gsm0348.api.model.CertificationMode;
-import ru.tapublog.lib.gsm0348.api.model.KID;
 
 public class KIDCoderTest {
 

@@ -1,17 +1,16 @@
-package ru.tapublog.lib.gsm0348.impl;
+package org.opentelecoms.gsm0348.impl;
 
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
 import org.junit.Test;
-
-import ru.tapublog.lib.gsm0348.api.model.CardProfile;
-import ru.tapublog.lib.gsm0348.api.model.CertificationMode;
-import ru.tapublog.lib.gsm0348.api.model.SPI;
-import ru.tapublog.lib.gsm0348.api.model.SecurityBytesType;
-import ru.tapublog.lib.gsm0348.impl.coders.CommandSPICoder;
-import ru.tapublog.lib.gsm0348.impl.coders.KICCoder;
-import ru.tapublog.lib.gsm0348.impl.coders.KIDCoder;
-import ru.tapublog.lib.gsm0348.impl.coders.ResponseSPICoder;
+import org.opentelecoms.gsm0348.api.model.CardProfile;
+import org.opentelecoms.gsm0348.api.model.CertificationMode;
+import org.opentelecoms.gsm0348.api.model.SPI;
+import org.opentelecoms.gsm0348.api.model.SecurityBytesType;
+import org.opentelecoms.gsm0348.impl.coders.CommandSPICoder;
+import org.opentelecoms.gsm0348.impl.coders.KICCoder;
+import org.opentelecoms.gsm0348.impl.coders.KIDCoder;
+import org.opentelecoms.gsm0348.impl.coders.ResponseSPICoder;
 
 public class PacketBuilderImplTest {
 
