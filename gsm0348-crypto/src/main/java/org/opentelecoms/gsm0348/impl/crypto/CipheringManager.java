@@ -98,11 +98,10 @@ public class CipheringManager {
       LOGGER.error("The maximum allowed key length is {} for {}", Cipher.getMaxAllowedKeyLength(cipher.getAlgorithm()), cipher.getAlgorithm());
       throw new IllegalArgumentException("The key length is above the maximum, please install JCE unlimited strength jurisdiction policy files");
     }
-    IvParameterSpec ivParameterSpec = null;
-    if (cipher.getAlgorithm().contains("CBC"))
-      ivParameterSpec = new IvParameterSpec(new byte[blockSize]);
+    final IvParameterSpec ivParameterSpec =
+        cipher.getAlgorithm().contains("CBC") ? new IvParameterSpec(new byte[blockSize]) : null;
 
-      cipher.init(mode, keySpec, ivParameterSpec);
+    cipher.init(mode, keySpec, ivParameterSpec);
   }
 
   /**
