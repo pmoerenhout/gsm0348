@@ -11,6 +11,8 @@ import org.opentelecoms.gsm0348.api.Util;
 import org.opentelecoms.gsm0348.impl.crypto.mac.CRC16X25;
 import org.opentelecoms.gsm0348.impl.crypto.mac.CRC32;
 import org.opentelecoms.gsm0348.impl.crypto.mac.DESMACISO9797M1;
+import org.opentelecoms.gsm0348.impl.crypto.mac.XOR4;
+import org.opentelecoms.gsm0348.impl.crypto.mac.XOR8;
 import org.opentelecoms.gsm0348.impl.crypto.params.KeyParameter;
 import org.opentelecoms.gsm0348.impl.crypto.params.ParametersWithIV;
 import org.slf4j.Logger;
@@ -28,6 +30,8 @@ public class SignatureManager {
   public static final String CRC_32 = "CRC32";
   public static final String AES_CMAC_32 = "AES_CMAC_32";
   public static final String AES_CMAC_64 = "AES_CMAC_64";
+  public static final String XOR4 = "XOR4";
+  public static final String XOR8 = "XOR8";
   private static final Logger LOGGER = LoggerFactory.getLogger(SignatureManager.class);
 
   private SignatureManager() {
@@ -52,7 +56,7 @@ public class SignatureManager {
 
   public static byte[] sign(String algName, byte[] key, byte[] data)
       throws NoSuchAlgorithmException, InvalidKeyException {
-    LOGGER.debug("Signing with algorithm {}. Data length: {}", algName, data.length);
+    LOGGER.debug("Signing with algorithm {}, data {} length {}", algName, Util.toHexString(data), data.length);
     if (DES_MAC8_ISO9797_M1.equals(algName)) {
       return runOwnMac(new DESMACISO9797M1(), key, data, 8);
     }
@@ -68,6 +72,12 @@ public class SignatureManager {
     if (AES_CMAC_32.equals(algName)) {
       return truncate(doWork("AESCMAC", key, data), 4);
     }
+    if (XOR4.equals(algName)) {
+      return runOwnMac(new XOR4(), key, data, 4);
+    }
+    if (XOR8.equals(algName)) {
+      return runOwnMac(new XOR8(), key, data, 8);
+    }
     return doWork(algName, key, data);
   }
 
@@ -80,6 +90,9 @@ public class SignatureManager {
   public static boolean verify(String algName, byte[] key, byte[] data, byte[] signature)
       throws NoSuchAlgorithmException, InvalidKeyException {
     LOGGER.debug("Verifying with algorithm {}. Data length: {}", algName, data.length);
+    if (!Arrays.equals(signature, sign(algName, key, data))) {
+      LOGGER.warn("Expecting {}, found {}", Util.toHexString(signature), Util.toHexString(sign(algName, key, data)));
+    }
     return Arrays.equals(signature, sign(algName, key, data));
   }
 
@@ -103,6 +116,10 @@ public class SignatureManager {
         return 8;
       case AES_CMAC_32:
         return 4;
+      case XOR4:
+        return 4;
+      case XOR8:
+        return 8;
     }
     Mac mac = Mac.getInstance(algName);
     final int macLength = mac.getMacLength();
