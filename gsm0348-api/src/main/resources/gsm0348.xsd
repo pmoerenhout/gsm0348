@@ -166,6 +166,8 @@
       <xsd:enumeration value='TRIPLE_DES_CBC_3_KEYS'/>
       <xsd:enumeration value='RESERVED'/>
       <xsd:enumeration value='AES_CMAC'/>
+      <xsd:enumeration value='XOR4'/>
+      <xsd:enumeration value='XOR8'/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -242,13 +244,6 @@
     </xsd:all>
   </xsd:complexType>
 
-  <xsd:group name="MasterKeys">
-    <xsd:sequence>
-      <xsd:element name="CipheringMasterKey" type="xsd:hexBinary" maxOccurs="1" minOccurs="1"/>
-      <xsd:element name="SignatureMasterKey" type="xsd:hexBinary" maxOccurs="1" minOccurs="1"/>
-    </xsd:sequence>
-  </xsd:group>
-
   <xsd:complexType name="CardProfile">
     <xsd:sequence>
       <xsd:element name="Name" type="xsd:string" minOccurs="1" maxOccurs="1"/>
@@ -259,7 +254,6 @@
       <xsd:element name="SecurityBytesType" type="SecurityBytesType" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="SignatureAlgorithm" type="xsd:string" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="CipheringAlgorithm" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-      <xsd:group ref="MasterKeys" maxOccurs="1" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 

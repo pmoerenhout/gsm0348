@@ -255,7 +255,7 @@ public class Gsm0348Test {
     cardProfile.setSPI(spi);
     cardProfile.setKIC(KICCoder.encode((byte) 0x12));
     cardProfile.setKID(KIDCoder.encode(CertificationMode.CC, (byte) 0x12));
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS_AND_UDHL);
+    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS);
     cardProfile.setTAR(tar);
     cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
@@ -287,7 +287,7 @@ public class Gsm0348Test {
     cardProfile.setSPI(spi);
     cardProfile.setKIC(KICCoder.encode((byte) 0x12));
     cardProfile.setKID(KIDCoder.encode(CertificationMode.CC, (byte) 0x12));
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS_AND_UDHL);
+    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS);
     cardProfile.setTAR(tar);
     cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);

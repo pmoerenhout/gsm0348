@@ -14,12 +14,13 @@ Finally, the code was adopted by the Open Telecoms project.
 
 ## News
 
+0. Added the proprietary XOR4 and XOR8 signing algorithms.
+0. Using the SMS implementation, use the SecurityBytesType.WITH_LENGTHS.
 0. Minimum Java is now 1.7, rewrite using ByteBuffer, prepare for other transports (SMS-CB, CATTP, HTTPS). The goal is to support ETSI TS 102 225, ETSI TS 131 115, and 3GPP TS 31.115.
-0. Version 1.2.9 is out
-0. Fixed NPE during response packet recovering (thanks to Tomas)
-0. Fixed testcases dataset schema location - now autotest should pass
-0. Added AES and RC
-0. Moved to the Open Telecoms GitHub and published in Maven Central repository
+0. Fixed NPE during response packet recovering (thanks to Tomas).
+0. Fixed testcases dataset schema location - now autotest should pass.
+0. Added AES and RC.
+0. Moved to the Open Telecoms GitHub and published in Maven Central repository.
 
 ## System Overview
 
@@ -57,12 +58,12 @@ Short Message Service Cell Broadcast (SMS-CB), CAT-TP and HTTPS (HTTPS) are not 
    <dependency>
       <groupId>org.opentelecoms.gsm0348</groupId>
       <artifactId>gsm0348-api</artifactId>
-      <version>1.2.9</version>
+      <version>1.2.10</version>
    </dependency>
    <dependency>
       <groupId>org.opentelecoms.gsm0348</groupId>
       <artifactId>gsm0348-impl</artifactId>
-      <version>1.2.9</version>
+      <version>1.2.10</version>
    </dependency>
 </dependencies>
 ```
@@ -74,7 +75,7 @@ mvn clean deploy
 ```
 For a proper release:
 ```
-mvn versions:set -DnewVersion=1.2.9
+mvn versions:set -DnewVersion=1.2.10
 mvn clean deploy -P release
 mvn nexus-staging:release
 # Or when something went wrong
