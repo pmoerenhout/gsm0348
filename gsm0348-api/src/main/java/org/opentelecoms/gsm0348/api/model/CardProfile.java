@@ -10,7 +10,6 @@ package org.opentelecoms.gsm0348.api.model;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -26,9 +25,7 @@ import org.opentelecoms.gsm0348.api.Util;
     "tar",
     "securityBytesType",
     "signatureAlgorithm",
-    "cipheringAlgorithm",
-    "cipheringMasterKey",
-    "signatureMasterKey"
+    "cipheringAlgorithm"
 })
 public class CardProfile {
 
@@ -49,14 +46,6 @@ public class CardProfile {
     protected String signatureAlgorithm;
     @XmlElement(name = "CipheringAlgorithm", required = true)
     protected String cipheringAlgorithm;
-    @XmlElement(name = "CipheringMasterKey", type = String.class)
-    @XmlJavaTypeAdapter(HexBinaryAdapter.class)
-    @XmlSchemaType(name = "hexBinary")
-    protected byte[] cipheringMasterKey;
-    @XmlElement(name = "SignatureMasterKey", type = String.class)
-    @XmlJavaTypeAdapter(HexBinaryAdapter.class)
-    @XmlSchemaType(name = "hexBinary")
-    protected byte[] signatureMasterKey;
 
     /**
      * Gets the value of the name property.
@@ -249,54 +238,6 @@ public class CardProfile {
         this.cipheringAlgorithm = value;
     }
 
-    /**
-     * Gets the value of the cipheringMasterKey property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public byte[] getCipheringMasterKey() {
-        return cipheringMasterKey;
-    }
-
-    /**
-     * Sets the value of the cipheringMasterKey property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setCipheringMasterKey(byte[] value) {
-        this.cipheringMasterKey = ((byte[]) value);
-    }
-
-    /**
-     * Gets the value of the signatureMasterKey property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public byte[] getSignatureMasterKey() {
-        return signatureMasterKey;
-    }
-
-    /**
-     * Sets the value of the signatureMasterKey property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setSignatureMasterKey(byte[] value) {
-        this.signatureMasterKey = ((byte[]) value);
-    }
-    
 	@Override
 	public int hashCode()
 	{
@@ -346,10 +287,6 @@ public class CardProfile {
 		builder.append(signatureAlgorithm);
 		builder.append(", cipheringAlgorithm=");
 		builder.append(cipheringAlgorithm);
-		builder.append(", cipheringMasterKey=");
-		builder.append(Util.toHexString(cipheringMasterKey));
-		builder.append(", signatureMasterKey=");
-		builder.append(Util.toHexString(signatureMasterKey));
 		builder.append("]");
 		return builder.toString();
 	}
