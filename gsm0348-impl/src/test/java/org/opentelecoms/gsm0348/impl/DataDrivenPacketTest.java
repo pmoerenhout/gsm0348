@@ -61,6 +61,7 @@ public class DataDrivenPacketTest {
   @Test
   public void testAll() throws Exception {
     Dataset cfg = loadDataset();
+    List<String> failed = new ArrayList<>();
 
     List<String> testNameList = new ArrayList<String>();
     for (TestCaseType testcase : cfg.getTestcase()) {
@@ -82,6 +83,7 @@ public class DataDrivenPacketTest {
               testcase.getSignatureKey());
         } catch (Exception exception) {
           exception.printStackTrace();
+          failed.add(testcase.getName());
           passed = false;
         }
 
@@ -89,6 +91,7 @@ public class DataDrivenPacketTest {
           LOGGER.error("Name: {}", testcase.getName());
           LOGGER.error("Found: \t\t{}", Hex.toHexString(packet));
           LOGGER.error("Expected: \t{}", Hex.toHexString(testcase.getResult().getRequestResult()));
+          failed.add(testcase.getName());
           passed = false;
         }
       } else {
@@ -97,6 +100,7 @@ public class DataDrivenPacketTest {
           packet = builder.recoverResponsePacket(testcase.getData(), testcase.getCipheringKey(), testcase.getSignatureKey());
         } catch (Exception exception) {
           exception.printStackTrace();
+          failed.add(testcase.getName());
           passed = false;
         }
 
@@ -104,10 +108,14 @@ public class DataDrivenPacketTest {
           LOGGER.error("Name: {}", testcase.getName());
           LOGGER.error("Found: \t\t{}", packet);
           LOGGER.error("Expected: \t{}", testcase.getResult().getResponseResult().getValue());
+          failed.add(testcase.getName());
           passed = false;
         }
       }
 
+    }
+    for (String fail: failed){
+      LOGGER.error("Test {} failed", fail);
     }
     assertTrue(passed);
   }
