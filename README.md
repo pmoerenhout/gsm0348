@@ -76,6 +76,8 @@ mvn clean deploy
 For a proper release:
 ```
 mvn versions:set -DnewVersion=1.2.10
+git tag -a 2.3.10 -m "2.3.10"
+git push origin --tags
 mvn clean deploy -P release
 mvn nexus-staging:release
 # Or when something went wrong
