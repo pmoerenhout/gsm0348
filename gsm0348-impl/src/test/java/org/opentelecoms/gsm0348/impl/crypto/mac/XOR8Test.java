@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.opentelecoms.gsm0348.api.Util;
 
 public class XOR8Test {
   private XOR8 xor8 = new XOR8();
@@ -21,7 +20,6 @@ public class XOR8Test {
     final byte[] output = new byte[8];
     final int bytesCopied = xor8.doFinal(output, 0);
     assertEquals(8, bytesCopied);
-    System.out.println(Util.toHexString(output));
     assertArrayEquals(new byte[]{ (byte) 0xab, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00 }, output);
   }
 
@@ -32,7 +30,6 @@ public class XOR8Test {
     final byte[] output = new byte[8];
     final int bytesCopied = xor8.doFinal(output, 0);
     assertEquals(8, bytesCopied);
-    System.out.println(Util.toHexString(output));
     assertArrayEquals(new byte[]{ (byte) 0x01, (byte) 0x02, (byte) 0x03, (byte) 0x04, (byte) 0x05, (byte) 0x06, (byte) 0x07, (byte) 0x08 }, output);
   }
 
@@ -45,7 +42,6 @@ public class XOR8Test {
     final byte[] output = new byte[8];
     final int bytesCopied = xor8.doFinal(output, 0);
     assertEquals(8, bytesCopied);
-    System.out.println(Util.toHexString(output));
     assertArrayEquals(new byte[]{ (byte) 0x81, (byte) 0x92, (byte) 0xa3, (byte) 0xb4, (byte) 0xc5, (byte) 0xd6, (byte) 0xe7, (byte) 0xf8 }, output);
   }
 

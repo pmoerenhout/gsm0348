@@ -65,11 +65,29 @@ public class Util {
     if (length >= 65536 && length <= 16777215) {
       return new byte[]{ (byte) 0x83, (byte) ((length >> 16) & (byte) 0xff), (byte) ((length >> 8) & (byte) 0xff), (byte) (length & (byte) 0xff) };
     }
-    throw new IllegalArgumentException("Encoded length is invalid");
+    throw new IllegalArgumentException("ETSI 102 220 encoded length is invalid");
   }
 
   public static int decodeLengthOne(final byte[] bytes) {
     return (bytes[0] & 0xff);
+  }
+
+  public static int decodeLength(final byte[] bytes) {
+    byte first = bytes[0];
+    if ((first & 0x80) == 0x00) {
+      return first & 0xff;
+    }
+    int octets = (first ^ (byte) 0x80);
+    if (octets > 3) {
+      throw new IllegalArgumentException("ETSI 102 220 encoded length has too many octets");
+    }
+    int result = 0;
+    for (int i = 1; i <= octets; i++) {
+      byte next = bytes[i];
+      result |= (next & 0xff) << ((octets - i) * 8);
+    }
+    return result;
+    // return ((bytes[1] & 0xff) << 8) + (first & 0xff);
   }
 
   public static int decodeLengthTwo(final byte[] bytes) {

@@ -13,36 +13,39 @@ import javax.xml.bind.annotation.XmlType;
 
 
 /**
- * <p>Java class for SynchroCounterMode.
- * 
+ * <p>Java class for TransportProtocol.
+ *
  * <p>The following schema fragment specifies the expected content contained within this class.
  * <p>
  * <pre>
- * &lt;simpleType name="SynchroCounterMode"&gt;
+ * &lt;simpleType name="TransportProtocol"&gt;
  *   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string"&gt;
- *     &lt;enumeration value="NO_COUNTER"/&gt;
- *     &lt;enumeration value="COUNTER_NO_REPLAY_NO_CHECK"/&gt;
- *     &lt;enumeration value="COUNTER_REPLAY_OR_CHECK"/&gt;
- *     &lt;enumeration value="COUNTER_REPLAY_OR_CHECK_INCREMENT"/&gt;
+ *     &lt;enumeration value="SMS_PP"/&gt;
+ *     &lt;enumeration value="SMS_PP"/&gt;
+ *     &lt;enumeration value="SMS_CB"/&gt;
+ *     &lt;enumeration value="USSD"/&gt;
+ *     &lt;enumeration value="CAT_TP"/&gt;
+ *     &lt;enumeration value="TCP_IP"/&gt;
  *   &lt;/restriction&gt;
  * &lt;/simpleType&gt;
  * </pre>
- * 
+ *
  */
-@XmlType(name = "SynchroCounterMode")
+@XmlType(name = "TransportProtocol")
 @XmlEnum
-public enum SynchroCounterMode {
+public enum TransportProtocol {
 
-    NO_COUNTER,
-    COUNTER_NO_REPLAY_NO_CHECK,
-    COUNTER_REPLAY_OR_CHECK,
-    COUNTER_REPLAY_OR_CHECK_INCREMENT;
+    CAT_TP,
+    SMS_CB,
+    SMS_PP,
+    TCP_IP,
+    USSD;
 
     public String value() {
         return name();
     }
 
-    public static SynchroCounterMode fromValue(String v) {
+    public static TransportProtocol fromValue(String v) {
         return valueOf(v);
     }
 

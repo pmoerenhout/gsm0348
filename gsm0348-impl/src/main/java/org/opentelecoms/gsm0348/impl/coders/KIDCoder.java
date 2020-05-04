@@ -6,10 +6,14 @@ import org.opentelecoms.gsm0348.api.model.CertificationAlgorithmMode;
 import org.opentelecoms.gsm0348.api.model.CertificationMode;
 import org.opentelecoms.gsm0348.api.model.KID;
 import org.opentelecoms.gsm0348.impl.CodingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KIDCoder {
 
-  public static byte decode(KID kid) throws CodingException {
+  private static final Logger LOGGER = LoggerFactory.getLogger(KIDCoder.class);
+
+  public static byte decode(final KID kid) throws CodingException {
     int algImpl = 0;
     int algMode = 0;
     byte keysetID = kid.getKeysetID();
@@ -58,12 +62,10 @@ public class KIDCoder {
       }
     }
 
-    byte result = (byte) (algImpl + (algMode << 2) + (keysetID << 4));
-
-    return result;
+    return (byte) (algImpl + (algMode << 2) + (keysetID << 4));
   }
 
-  public static KID encode(CertificationMode certificationMode, byte kid) throws CodingException {
+  public static KID encode(final CertificationMode certificationMode, final byte kid) throws CodingException {
     KID result = new KID();
 
     final int algImpl = kid & 0x03;

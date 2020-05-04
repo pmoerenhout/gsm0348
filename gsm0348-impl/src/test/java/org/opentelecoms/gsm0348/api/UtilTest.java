@@ -84,4 +84,25 @@ public class UtilTest {
     assertEncodedLength(16777215, new byte[]{ (byte) 0x83, (byte) 0xff, (byte) 0xff, (byte) 0xff });
   }
 
+  @Test
+  public void test_length_decode() {
+    // ETSI TS 101 220
+    assertEquals(0, Util.decodeLength(new byte[]{ (byte) 0x00 }));
+    assertEquals(1, Util.decodeLength(new byte[]{ (byte) 0x01 }));
+    assertEquals(127, Util.decodeLength(new byte[]{ (byte) 0x7f }));
+    assertEquals(128, Util.decodeLength(new byte[]{ (byte) 0x81, (byte) 0x80 }));
+    assertEquals(129, Util.decodeLength(new byte[]{ (byte) 0x81, (byte) 0x81 }));
+    assertEquals(255, Util.decodeLength(new byte[]{ (byte) 0x81, (byte) 0xff, }));
+    assertEquals(256, Util.decodeLength(new byte[]{ (byte) 0x82, (byte) 0x01, (byte) 0x00 }));
+    assertEquals(65535, Util.decodeLength(new byte[]{ (byte) 0x82, (byte) 0xff, (byte) 0xff }));
+    assertEquals(65536, Util.decodeLength(new byte[]{ (byte) 0x83, (byte) 0x01, (byte) 0x00, (byte) 0x00 }));
+    assertEquals(16777215, Util.decodeLength(new byte[]{ (byte) 0x83, (byte) 0xff, (byte) 0xff, (byte) 0xff }));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void test_length_decode_invalid() {
+    // ETSI TS 101 220
+    assertEquals(0, Util.decodeLength(new byte[]{ (byte) 0x85 }));
+  }
+
 }

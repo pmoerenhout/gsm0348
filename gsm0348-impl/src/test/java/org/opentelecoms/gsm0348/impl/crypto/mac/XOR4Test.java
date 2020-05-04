@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.opentelecoms.gsm0348.api.Util;
 
 public class XOR4Test {
 
@@ -21,7 +20,6 @@ public class XOR4Test {
     xor4.update((byte) 0xab);
     final byte[] output = new byte[4];
     final int bytesCopied = xor4.doFinal(output, 0);
-    System.out.println(Util.toHexString(output));
     assertEquals(4, bytesCopied);
     assertArrayEquals(new byte[]{ (byte) 0xab, (byte) 0x00, (byte) 0x00, (byte) 0x00 }, output);
   }

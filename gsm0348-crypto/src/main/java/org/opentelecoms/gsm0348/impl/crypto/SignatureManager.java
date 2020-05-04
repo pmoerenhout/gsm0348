@@ -90,10 +90,12 @@ public class SignatureManager {
   public static boolean verify(String algName, byte[] key, byte[] data, byte[] signature)
       throws NoSuchAlgorithmException, InvalidKeyException {
     LOGGER.debug("Verifying with algorithm {}. Data length: {}", algName, data.length);
-    if (!Arrays.equals(signature, sign(algName, key, data))) {
-      LOGGER.warn("Expecting {}, found {}", Util.toHexString(signature), Util.toHexString(sign(algName, key, data)));
+    final byte[] calculatedSignature = sign(algName, key, data);
+    final boolean ok = Arrays.equals(signature, calculatedSignature);
+    if (!ok) {
+      LOGGER.warn("Expecting signature {}, but found {}", Util.toHexString(signature), Util.toHexString(calculatedSignature));
     }
-    return Arrays.equals(signature, sign(algName, key, data));
+    return ok;
   }
 
   private static byte[] doWork(final String algName, byte[] key, byte[] data) throws InvalidKeyException, NoSuchAlgorithmException {
@@ -122,7 +124,6 @@ public class SignatureManager {
         return 8;
     }
     Mac mac = Mac.getInstance(algName);
-    final int macLength = mac.getMacLength();
-    return macLength;
+    return mac.getMacLength();
   }
 }

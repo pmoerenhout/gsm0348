@@ -6,6 +6,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opentelecoms.gsm0348.api.PacketBuilder;
 import org.opentelecoms.gsm0348.api.Util;
@@ -24,9 +25,8 @@ import org.opentelecoms.gsm0348.api.model.ResponsePacket;
 import org.opentelecoms.gsm0348.api.model.ResponsePacketStatus;
 import org.opentelecoms.gsm0348.api.model.ResponseSPI;
 import org.opentelecoms.gsm0348.api.model.SPI;
-import org.opentelecoms.gsm0348.api.model.SecurityBytesType;
 import org.opentelecoms.gsm0348.api.model.SynchroCounterMode;
-import org.opentelecoms.gsm0348.impl.CodingException;
+import org.opentelecoms.gsm0348.api.model.TransportProtocol;
 import org.opentelecoms.gsm0348.impl.PacketBuilderFactory;
 import org.opentelecoms.gsm0348.impl.coders.CommandSPICoder;
 import org.opentelecoms.gsm0348.impl.coders.KICCoder;
@@ -36,15 +36,16 @@ import org.opentelecoms.gsm0348.impl.crypto.SignatureManager;
 import org.slf4j.impl.SimpleLogger;
 
 public class Gsm0348Test {
+
   private PacketBuilder packetBuilder;
   private byte[] cipheringKey;
   private byte[] signatureKey;
 
   private static CardProfile createProfile() {
     CardProfile cardProfile = new CardProfile();
-    cardProfile.setCipheringAlgorithm("");
-    cardProfile.setSignatureAlgorithm("");
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS);
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
+    cardProfile.setCipheringAlgorithm(null);
+    cardProfile.setSignatureAlgorithm(null);
     cardProfile.setTAR(new byte[]{ (byte) 0xb0, 0x00, 0x10 });
 
     KIC kic = new KIC();
@@ -78,12 +79,12 @@ public class Gsm0348Test {
     return cardProfile;
   }
 
-  private static CardProfile createProfileAes(final SecurityBytesType securityBytesType, final boolean cipher,
-                                              final SynchroCounterMode synchroCounterMode) throws CodingException {
+  private static CardProfile createProfileAes(final TransportProtocol transportProtocol, final boolean cipher,
+                                              final SynchroCounterMode synchroCounterMode) {
     CardProfile cardProfile = new CardProfile();
-    cardProfile.setCipheringAlgorithm("");
+    cardProfile.setTransportProtocol(transportProtocol);
+    cardProfile.setCipheringAlgorithm(null);
     cardProfile.setSignatureAlgorithm("AES_CMAC_64");
-    cardProfile.setSecurityBytesType(securityBytesType);
     cardProfile.setTAR(new byte[]{ (byte) 0x00, 0x00, 0x01 });
 
     KIC kic = new KIC();
@@ -118,12 +119,12 @@ public class Gsm0348Test {
     return cardProfile;
   }
 
-  private static CardProfile createProfileDes(final SecurityBytesType securityBytesType, final boolean cipher,
+  private static CardProfile createProfileDes(final boolean cipher,
                                               final SynchroCounterMode synchroCounterMode) {
     CardProfile cardProfile = new CardProfile();
-    cardProfile.setCipheringAlgorithm("");
-    cardProfile.setSignatureAlgorithm("");
-    cardProfile.setSecurityBytesType(securityBytesType);
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
+    cardProfile.setCipheringAlgorithm(null);
+    cardProfile.setSignatureAlgorithm(null);
     cardProfile.setTAR(new byte[]{ (byte) 0xb2, 0x05, 0x02 });
 
     KIC kic = new KIC();
@@ -183,11 +184,12 @@ public class Gsm0348Test {
   }
 
   @Test
-  public void test_create_and_recover_command_packet_with_no_security() throws Exception {
+  public void should_create_and_recover_command_packet_with_no_security() throws Exception {
     /*
      * Creating card profile - for each service (with unique TAR)
      */
     CardProfile cardProfile = createProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.CAT_TP);
 
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
 
@@ -208,8 +210,6 @@ public class Gsm0348Test {
 
     CommandPacket recoveredPacket = packetBuilder.recoverCommandPacket(packet, cipheringKey, signatureKey);
 
-    System.out.println(Util.toHexString(recoveredPacket.getHeader().getCounter()));
-
     Assert.assertEquals(cardProfile.getKIC(), recoveredPacket.getHeader().getKIC());
     Assert.assertEquals(cardProfile.getKID(), recoveredPacket.getHeader().getKID());
     Assert.assertArrayEquals(cardProfile.getTAR(), recoveredPacket.getHeader().getTAR());
@@ -222,6 +222,7 @@ public class Gsm0348Test {
     byte[] data = new byte[]{ (byte) 0xaa, (byte) 0xbb };
     byte[] tar = new byte[]{ 0x01, 0x02, 0x03 };
     CardProfile cardProfile = new CardProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
     SPI spi = new SPI();
     // No RC, CC or DS, No Ciphering
     spi.setCommandSPI(CommandSPICoder.encode((byte) 0x00));
@@ -229,13 +230,10 @@ public class Gsm0348Test {
     cardProfile.setSPI(spi);
     cardProfile.setKIC(KICCoder.encode((byte) 0x00));
     cardProfile.setKID(KIDCoder.encode(CertificationMode.NO_SECURITY, (byte) 0x00));
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS_AND_UDHL);
     cardProfile.setTAR(tar);
     cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
     byte[] commandBytes = packetBuilder.buildCommandPacket(data, null, null, null);
-
-    System.out.println(Util.toHexString(commandBytes));
 
     Assert.assertArrayEquals(
         new byte[]{ (byte) 0x00, (byte) 0x10, (byte) 0x0d, (byte) 0x00, (byte) 0x22, (byte) 0x00, (byte) 0x00, (byte) 0x01,
@@ -249,13 +247,13 @@ public class Gsm0348Test {
     byte[] counter = new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x00 };
     byte[] tar = new byte[]{ 0x01, 0x02, 0x03 };
     CardProfile cardProfile = new CardProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
     SPI spi = new SPI();
     spi.setCommandSPI(CommandSPICoder.encode((byte) 0x06));
     spi.setResponseSPI(ResponseSPICoder.encode((byte) 0x21));
     cardProfile.setSPI(spi);
     cardProfile.setKIC(KICCoder.encode((byte) 0x12));
     cardProfile.setKID(KIDCoder.encode(CertificationMode.CC, (byte) 0x12));
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS);
     cardProfile.setTAR(tar);
     cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
@@ -273,6 +271,35 @@ public class Gsm0348Test {
   }
 
   @Test
+  public void should_build_command_packet_aes_cat_tp() throws Exception {
+    byte[] data = new byte[]{ (byte) 0xaa, (byte) 0xbb };
+    byte[] counter = new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x00 };
+    byte[] tar = new byte[]{ 0x01, 0x02, 0x03 };
+    CardProfile cardProfile = new CardProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.CAT_TP);
+    SPI spi = new SPI();
+    spi.setCommandSPI(CommandSPICoder.encode((byte) 0x06));
+    spi.setResponseSPI(ResponseSPICoder.encode((byte) 0x21));
+    cardProfile.setSPI(spi);
+    cardProfile.setKIC(KICCoder.encode((byte) 0x12));
+    cardProfile.setKID(KIDCoder.encode(CertificationMode.CC, (byte) 0x12));
+    cardProfile.setTAR(tar);
+    cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
+    PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
+    byte[] cipheringKey = new byte[]{ 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, (byte) 0x88, (byte) 0x99, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16 };
+    byte[] signatureKey = new byte[]{ 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, (byte) 0x88, (byte) 0x99, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16 };
+
+    byte[] commandBytes = packetBuilder.buildCommandPacket(data, counter, cipheringKey, signatureKey);
+
+    Assert.assertArrayEquals(
+        new byte[]{ (byte) 0x01, (byte) 0x18, (byte) 0x15, (byte) 0x06, (byte) 0x21, (byte) 0x12, (byte) 0x12, (byte) 0x01,
+            (byte) 0x02, (byte) 0x03, (byte) 0xE6, (byte) 0x68, (byte) 0x98, (byte) 0x20, (byte) 0x13, (byte) 0x08,
+            (byte) 0xDA, (byte) 0x27, (byte) 0xD2, (byte) 0xA8, (byte) 0xF2, (byte) 0x31, (byte) 0x45, (byte) 0xA6,
+            (byte) 0xF7, (byte) 0xC3 },
+        commandBytes);
+  }
+
+  @Test
   public void should_build_large_command_packet_aes() throws Exception {
     byte[] data = new byte[256];
     for (int i = 0; i < data.length; i++) {
@@ -281,13 +308,13 @@ public class Gsm0348Test {
     byte[] counter = new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x00 };
     byte[] tar = new byte[]{ 0x01, 0x02, 0x03 };
     CardProfile cardProfile = new CardProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
     SPI spi = new SPI();
     spi.setCommandSPI(CommandSPICoder.encode((byte) 0x06));
     spi.setResponseSPI(ResponseSPICoder.encode((byte) 0x21));
     cardProfile.setSPI(spi);
     cardProfile.setKIC(KICCoder.encode((byte) 0x12));
     cardProfile.setKID(KIDCoder.encode(CertificationMode.CC, (byte) 0x12));
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS);
     cardProfile.setTAR(tar);
     cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
@@ -303,13 +330,13 @@ public class Gsm0348Test {
   public void should_recover_command_packet() throws Exception {
     byte[] tar = new byte[]{ 0x01, 0x02, 0x03 };
     CardProfile cardProfile = new CardProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
     SPI spi = new SPI();
     spi.setCommandSPI(CommandSPICoder.encode((byte) 0x06));
     spi.setResponseSPI(ResponseSPICoder.encode((byte) 0x21));
     cardProfile.setSPI(spi);
     cardProfile.setKIC(KICCoder.encode((byte) 0x12));
     cardProfile.setKID(KIDCoder.encode(CertificationMode.CC, (byte) 0x12));
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS);
     cardProfile.setTAR(tar);
     cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
@@ -332,13 +359,13 @@ public class Gsm0348Test {
   public void should_recover_large_command_packet() throws Exception {
     byte[] tar = new byte[]{ 0x01, 0x02, 0x03 };
     CardProfile cardProfile = new CardProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
     SPI spi = new SPI();
     spi.setCommandSPI(CommandSPICoder.encode((byte) 0x06));
     spi.setResponseSPI(ResponseSPICoder.encode((byte) 0x21));
     cardProfile.setSPI(spi);
     cardProfile.setKIC(KICCoder.encode((byte) 0x12));
     cardProfile.setKID(KIDCoder.encode(CertificationMode.CC, (byte) 0x12));
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS);
     cardProfile.setTAR(tar);
     cardProfile.setSignatureAlgorithm(SignatureManager.AES_CMAC_64);
     PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
@@ -361,29 +388,50 @@ public class Gsm0348Test {
   }
 
   @Test
-  public void should_recover_response_packet2() throws Exception {
-    // byte[] responsePacketBytes = new byte[]{ 0x02, 0x71, 0x00, 0x00, 0x0D, 0x0A, (byte)0xdf, 0x5f, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte)0x90, (byte)0x00 };
-    // byte[] responsePacketBytes = new byte[]{ 0x00, 0x00, 0x0D, 0x0A, (byte)0xdf, 0x5f, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte)0x90, (byte)0x00 };
-    byte[] responsePacketBytes = new byte[]{ 0x00, 0x0d, 0x0a, (byte) 0xdf, 0x5f, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x90, (byte) 0x00 };
-    ResponsePacket responsePacket = packetBuilder.recoverResponsePacket(responsePacketBytes, cipheringKey, signatureKey);
+  public void should_create_and_recover_response_packet_with_no_security() throws Exception {
+    /*
+     * Creating card profile - for each service (with unique TAR)
+     */
+    CardProfile cardProfile = createProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.CAT_TP);
 
-    Assert.assertEquals(ResponsePacketStatus.POR_OK, responsePacket.getHeader().getResponseStatus());
-    Assert.assertArrayEquals(new byte[]{ (byte) 0xdf, 0x5f, 0x33 }, responsePacket.getHeader().getTAR());
-    Assert.assertArrayEquals(new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x00 }, responsePacket.getHeader().getCounter());
-    Assert.assertEquals(0x00, responsePacket.getHeader().getPaddingCounter());
-    Assert.assertArrayEquals(new byte[]{ (byte) 0x90, 0x00 }, responsePacket.getData());
+    PacketBuilder packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
+
+    /*
+     * Data sent by applet as response.
+     */
+    byte[] data = new byte[]{ 1, 2, 3, 4, 5 };
+    byte[] counter = new byte[]{ 0, 0, 0, 0, 2 };
+
+    /*
+     * Security keys. Mostly produced from master keys. See ICCIDKeyGenerator.
+     */
+    byte[] cipheringKey = new byte[]{ 0, 0, 0, 0, 0, 0, 0, 0 };
+    byte[] signatureKey = new byte[]{ 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    ResponsePacketStatus responsePacketStatus = ResponsePacketStatus.CNTR_LOW;
+
+    byte[] packet = packetBuilder.buildResponsePacket(data, counter, cipheringKey, signatureKey, responsePacketStatus);
+
+    ResponsePacket recoveredPacket = packetBuilder.recoverResponsePacket(packet, cipheringKey, signatureKey);
+
+    Assert.assertArrayEquals(cardProfile.getTAR(), recoveredPacket.getHeader().getTAR());
+    Assert.assertArrayEquals(new byte[]{ 0, 0, 0, 0, 0 }, recoveredPacket.getHeader().getCounter());
+    Assert.assertEquals((byte) 0x00, recoveredPacket.getHeader().getPaddingCounter());
+    Assert.assertEquals(ResponsePacketStatus.CNTR_LOW, recoveredPacket.getHeader().getResponseStatus());
+    Assert.assertArrayEquals(new byte[]{ 1, 2, 3, 4, 5 }, recoveredPacket.getData());
   }
 
   @Test
   public void should_recover_response_packet() throws Exception {
-    byte[] responsePacketBytes = new byte[]{ 0x00, 0x0E, 0x0A, (byte) 0xB0, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x6E, 0x00 };
+    byte[] responsePacketBytes = new byte[]{ 0x00, 0x0e, 0x0a, (byte) 0xb0, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x6e, 0x00 };
     ResponsePacket responsePacket = packetBuilder.recoverResponsePacket(responsePacketBytes, cipheringKey, signatureKey);
 
     Assert.assertEquals(ResponsePacketStatus.POR_OK, responsePacket.getHeader().getResponseStatus());
-    Assert.assertArrayEquals(new byte[]{ (byte) 0xB0, 0x00, 0x10 }, responsePacket.getHeader().getTAR());
+    Assert.assertArrayEquals(new byte[]{ (byte) 0xb0, 0x00, 0x10 }, responsePacket.getHeader().getTAR());
     Assert.assertArrayEquals(new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x01 }, responsePacket.getHeader().getCounter());
     Assert.assertEquals(0x00, responsePacket.getHeader().getPaddingCounter());
-    Assert.assertArrayEquals(new byte[]{ 0x01, 0x6E, 0x00 }, responsePacket.getData());
+    Assert.assertArrayEquals(new byte[]{ 0x01, 0x6e, 0x00 }, responsePacket.getData());
   }
 
   @Test
@@ -396,7 +444,7 @@ public class Gsm0348Test {
     Assert.assertArrayEquals(new byte[]{ (byte) 0xB0, 0x01, 0x1F }, responsePacket.getHeader().getTAR());
     Assert.assertArrayEquals(new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x01 }, responsePacket.getHeader().getCounter());
     Assert.assertEquals(0x00, responsePacket.getHeader().getPaddingCounter());
-    Assert.assertArrayEquals(new byte[]{ 0x0A, (byte) 0x90, 0x00 }, responsePacket.getData());
+    Assert.assertArrayEquals(new byte[]{ 0x0a, (byte) 0x90, 0x00 }, responsePacket.getData());
   }
 
   @Test
@@ -410,7 +458,7 @@ public class Gsm0348Test {
 
   @Test
   public void should_build_response_packet_cc_aes_cmac_64_with_lengths_and_udhl() throws Exception {
-    CardProfile cardProfile = createProfileAes(SecurityBytesType.WITH_LENGHTS_AND_UDHL, false, SynchroCounterMode.NO_COUNTER);
+    CardProfile cardProfile = createProfileAes(TransportProtocol.SMS_PP, false, SynchroCounterMode.NO_COUNTER);
 
     // The AES signature key
     final byte[] signatureKey = new byte[]{ (byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77, (byte) 0x88, (byte) 0x99, (byte) 0x10, (byte) 0x11, (byte) 0x12, (byte) 0x13, (byte) 0x14, (byte) 0x15, (byte) 0x16 };
@@ -434,7 +482,7 @@ public class Gsm0348Test {
 
   @Test
   public void should_recover_response_packet_cc_aes_cmac_64_with_lengths_and_udhl() throws Exception {
-    CardProfile cardProfile = createProfileAes(SecurityBytesType.WITH_LENGHTS_AND_UDHL, false, SynchroCounterMode.NO_COUNTER);
+    CardProfile cardProfile = createProfileAes(TransportProtocol.SMS_PP, false, SynchroCounterMode.NO_COUNTER);
     // The AES signature key
     final byte[] signatureKey = new byte[]{ (byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77, (byte) 0x88, (byte) 0x99, (byte) 0x10, (byte) 0x11, (byte) 0x12, (byte) 0x13, (byte) 0x14, (byte) 0x15, (byte) 0x16 };
     packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
@@ -452,8 +500,26 @@ public class Gsm0348Test {
   }
 
   @Test
-  public void should_build_response_packet_cc_aes_cmac_64_with_lengths() throws Exception {
-    CardProfile cardProfile = createProfileAes(SecurityBytesType.WITH_LENGHTS, false, SynchroCounterMode.NO_COUNTER);
+  public void should_recover_response_packet_cat_tp() throws Exception {
+    CardProfile cardProfile = createProfile();
+    cardProfile.setTransportProtocol(TransportProtocol.CAT_TP);
+    packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
+
+    byte[] responsePacketBytes = Hex.decode("020e0ab0000100000000000000026101");
+    ResponsePacket responsePacket = packetBuilder.recoverResponsePacket(responsePacketBytes, null, signatureKey);
+
+    Assert.assertEquals(ResponsePacketStatus.POR_OK, responsePacket.getHeader().getResponseStatus());
+    Assert.assertArrayEquals(new byte[]{ (byte) 0xb0, 0x00, 0x01 }, responsePacket.getHeader().getTAR());
+    Assert.assertArrayEquals(new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x00 }, responsePacket.getHeader().getCounter());
+    Assert.assertEquals(0x00, responsePacket.getHeader().getPaddingCounter());
+    Assert.assertEquals(POR_OK, responsePacket.getHeader().getResponseStatus());
+    Assert.assertArrayEquals(new byte[]{ (byte) 0x02, (byte) 0x61, (byte) 0x01 }, responsePacket.getData());
+  }
+
+  @Ignore
+  @Test
+  public void should_build_response_packet_cc_aes_cmac_64_sms_pp() throws Exception {
+    CardProfile cardProfile = createProfileAes(TransportProtocol.SMS_PP, false, SynchroCounterMode.NO_COUNTER);
 
     // The AES signature key
     final byte[] signatureKey = new byte[]{ (byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77, (byte) 0x88, (byte) 0x99, (byte) 0x10, (byte) 0x11, (byte) 0x12, (byte) 0x13, (byte) 0x14, (byte) 0x15, (byte) 0x16 };
@@ -476,7 +542,7 @@ public class Gsm0348Test {
 
   @Test
   public void should_build_response_packet_cc_aes_cmac_64_with_lengths_and_udhl_ciphered_and_recover() throws Exception {
-    CardProfile cardProfile = createProfileAes(SecurityBytesType.WITH_LENGHTS_AND_UDHL, true, SynchroCounterMode.COUNTER_REPLAY_OR_CHECK);
+    CardProfile cardProfile = createProfileAes(TransportProtocol.SMS_PP, true, SynchroCounterMode.COUNTER_REPLAY_OR_CHECK);
 
     // The AES signature key
     final byte[] signatureKey = new byte[]{ (byte) 0x11, (byte) 0x22, (byte) 0x33, (byte) 0x44, (byte) 0x55, (byte) 0x66, (byte) 0x77, (byte) 0x88, (byte) 0x99, (byte) 0x10, (byte) 0x11, (byte) 0x12, (byte) 0x13, (byte) 0x14, (byte) 0x15, (byte) 0x16 };

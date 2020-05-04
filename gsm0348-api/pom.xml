@@ -22,10 +22,12 @@
 					</execution>
 				</executions>
 			  <configuration>
-				  <schemaFiles>gsm0348.xsd</schemaFiles>
-					<schemaDirectory>src/main/resources</schemaDirectory>
+          <sources>
+            <source>src/main/resources/gsm0348.xsd</source>
+          </sources>
 					<outputDirectory>src/main/java/</outputDirectory>
 					<clearOutputDir>false</clearOutputDir>
+          <createJavaDocAnnotations>true</createJavaDocAnnotations>
 					<packageName>org.opentelecoms.gsm0348.api.model</packageName>
 				</configuration>
 			</plugin> -->

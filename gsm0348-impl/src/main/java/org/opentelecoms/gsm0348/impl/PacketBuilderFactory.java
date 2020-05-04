@@ -14,8 +14,8 @@ import org.opentelecoms.gsm0348.api.model.PoRMode;
 import org.opentelecoms.gsm0348.api.model.PoRProtocol;
 import org.opentelecoms.gsm0348.api.model.ResponseSPI;
 import org.opentelecoms.gsm0348.api.model.SPI;
-import org.opentelecoms.gsm0348.api.model.SecurityBytesType;
 import org.opentelecoms.gsm0348.api.model.SynchroCounterMode;
+import org.opentelecoms.gsm0348.api.model.TransportProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ public class PacketBuilderFactory {
   }
 
   /**
-   * Creates a default instance with no security applied.
+   * Creates a default instance for SMS_PP with no security applied.
    *
    * Useful for recovering packets with {@link PacketBuilder#recoverCommandPacket(byte[], byte[], byte[])}.
    *
@@ -45,7 +45,7 @@ public class PacketBuilderFactory {
    */
   public static PacketBuilder getInstance() {
     CardProfile cardProfile = new CardProfile();
-    cardProfile.setSecurityBytesType(SecurityBytesType.WITH_LENGHTS_AND_UDHL);
+    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
     cardProfile.setTAR(new byte[]{ 0, 0, 0 });
 
     KIC kic = new KIC();
