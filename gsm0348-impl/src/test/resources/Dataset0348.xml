@@ -1285,7 +1285,6 @@
 					<gsm0348:ResponseStatus>POR_OK</gsm0348:ResponseStatus>
 				</gsm0348:Header>
 			</ResponseResult>
-			<!-- 000E 0A B00010 0000000001 00 00 016E00 -->
 		</Result>
 	</testcase>
 
@@ -1382,7 +1381,6 @@
 					<gsm0348:ResponseStatus>POR_OK</gsm0348:ResponseStatus>
 				</gsm0348:Header>
 			</ResponseResult>
-			<!--  000E0A B00010 0000000007 00 00 049000 -->
 		</Result>
 	</testcase>
 
@@ -1431,7 +1429,6 @@
 					<gsm0348:ResponseStatus>POR_OK</gsm0348:ResponseStatus>
 				</gsm0348:Header>
 			</ResponseResult>
-			<!--  000E0A B00010 0000000007 00 00 049000 -->
 		</Result>
 	</testcase>
 

@@ -122,6 +122,12 @@ public class CipheringManager {
    */
   public static byte[] encipher(final String transformation, final byte[] key, final byte[] data)
       throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+    //final int blockSize = getBlockSize(transformation);
+    // Is it aligned on blocksize
+//    if (data.length % blockSize != 0) {
+//      final int alignedlength = aligned(data.length, blockSize);
+//      return doWork(transformation, key, Arrays.copyOf(data, alignedlength), Cipher.ENCRYPT_MODE);
+//    }
     return doWork(transformation, key, data, Cipher.ENCRYPT_MODE);
   }
 
@@ -161,5 +167,13 @@ public class CipheringManager {
       LOGGER.error("Invalid key provided. Key:" + Util.toHexArray(key), e);
       throw e;
     }
+  }
+
+  protected static int aligned(final int length, final int blockSize) {
+    final int align = length % blockSize;
+    if (0 != align) {
+      return length + blockSize - align;
+    }
+    return length;
   }
 }

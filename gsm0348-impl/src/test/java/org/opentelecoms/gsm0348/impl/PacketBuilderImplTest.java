@@ -56,7 +56,7 @@ public class PacketBuilderImplTest {
   @Parameters
   public static Collection<Object[]> data() {
     ArrayList<Object[]> parameters = new ArrayList<>();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
       for (TransportProtocol tp : TransportProtocol.values()) {
         for (PacketType packetType : PacketType.values()) {
           if (tp == TransportProtocol.SMS_CB && packetType == PacketType.RESPONSE) {

@@ -46,7 +46,8 @@ public class SignatureManager {
   }
 
   private static byte[] runOwnMac(org.opentelecoms.gsm0348.impl.crypto.Mac mac, byte[] key, byte[] data, int size) {
-    CipherParameters params = new ParametersWithIV(new KeyParameter(key), new byte[8]); //TODO: Fix incorrect IV value - should be the length of the block of underlying cipher not a magical constant
+    // TODO: Fix incorrect IV value - should be the length of the block of underlying cipher not a magical constant
+    CipherParameters params = new ParametersWithIV(new KeyParameter(key), new byte[8]);
     mac.init(params);
     mac.update(data, 0, data.length);
     byte[] result = new byte[size];

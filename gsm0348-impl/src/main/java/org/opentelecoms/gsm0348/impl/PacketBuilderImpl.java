@@ -68,7 +68,7 @@ public class PacketBuilderImpl implements PacketBuilder {
   private boolean commandPacketSigning;
   private boolean responsePacketCiphering;
   private boolean responsePacketSigning;
-  private boolean usingCounters;
+  private boolean usingCounter;
   private CardProfile cardProfile;
   private String cipheringAlgorithmName;
   private String signatureAlgorithmName;
@@ -295,16 +295,16 @@ public class PacketBuilderImpl implements PacketBuilder {
       case DES:
         switch (kic.getCipheringAlgorithmMode()) {
           case DES_CBC:
-            cipheringAlgorithmName = "DES/CBC/ZeroBytePadding";
+            cipheringAlgorithmName = "DES/CBC/NoPadding";
             break;
 
           case DES_ECB:
-            cipheringAlgorithmName = "DES/ECB/ZeroBytePadding";
+            cipheringAlgorithmName = "DES/ECB/NoPadding";
             break;
 
           case TRIPLE_DES_CBC_2_KEYS:
           case TRIPLE_DES_CBC_3_KEYS:
-            cipheringAlgorithmName = "DESede/CBC/ZeroBytePadding";
+            cipheringAlgorithmName = "DESede/CBC/NoPadding";
             break;
 
           default:
@@ -314,7 +314,7 @@ public class PacketBuilderImpl implements PacketBuilder {
       case AES:
         switch (kic.getCipheringAlgorithmMode()) {
           case AES_CBC:
-            cipheringAlgorithmName = "AES/CBC/ZeroBytePadding";
+            cipheringAlgorithmName = "AES/CBC/NoPadding";
             break;
           default:
             throw new PacketBuilderConfigurationException("Not implemented yet");
@@ -368,9 +368,9 @@ public class PacketBuilderImpl implements PacketBuilder {
       setSigningAlgorithmName(cardProfile);
     }
 
-    usingCounters = commandSPI.getSynchroCounterMode() != SynchroCounterMode.NO_COUNTER;
-    if (!usingCounters) {
-      LOGGER.debug("Counters are turned off - counters field in packet will be filled with zeroes");
+    usingCounter = commandSPI.getSynchroCounterMode() != SynchroCounterMode.NO_COUNTER;
+    if (!usingCounter) {
+      LOGGER.debug("Counter is turned off - counter field in packet will be filled with zeroes");
     }
 
     try {
@@ -421,12 +421,12 @@ public class PacketBuilderImpl implements PacketBuilder {
     if (commandPacketSigning && (signatureKey == null)) {
       throw new PacketBuilderConfigurationException("Signing is enabled - signature key must be specified");
     }
-    if (counter == null && usingCounters) {
-      throw new PacketBuilderConfigurationException("Counters are null and they are required by configuration");
+    if (counter == null && usingCounter) {
+      throw new PacketBuilderConfigurationException("Counter is null and required by configuration");
     }
     if (counter != null && counter.length != COUNTER_SIZE) {
-      throw new PacketBuilderConfigurationException("Counters size mismatch. Current = "
-          + (counter != null ? counter.length : "counter == null") + ". Required:" + COUNTER_SIZE);
+      throw new PacketBuilderConfigurationException("Counter size mismatch. Current is "
+          + (counter != null ? counter.length : "null") + ", required is " + COUNTER_SIZE);
     }
 
     try {
@@ -436,7 +436,7 @@ public class PacketBuilderImpl implements PacketBuilder {
 
       byte[] signature = new byte[signatureLength];
       byte[] dataBytes = (data == null) ? new byte[0] : data;
-      byte[] counterBytes = usingCounters ? counter : new byte[COUNTER_SIZE];
+      byte[] counterBytes = usingCounter ? counter : new byte[COUNTER_SIZE];
       int paddingCounter = 0;
 
       ByteBuffer header = createHeader(HEADER_SIZE_WITHOUT_SIGNATURE + signatureLength);
@@ -502,10 +502,10 @@ public class PacketBuilderImpl implements PacketBuilder {
 
         // SMS_PP - CPI - UDH 02 70 00 is not taken in the RC/CC/DS calculation
 
-        ByteBuffer signData = ByteBuffer.allocate(cpi.length + cpl.length + header.array().length - signatureLength + dataBytes.length + paddingCounter);
+        ByteBuffer signData = ByteBuffer.allocate(cpi.length + cpl.length + header.capacity() - signatureLength + dataBytes.length + paddingCounter);
         signData.put(cpi);
         signData.put(cpl);
-        signData.put(header.array(), 0, header.array().length - signatureLength);
+        signData.put(header.array(), 0, header.capacity() - signatureLength);
         signData.put(dataBytes);
         // Padding data (zeros) are already in buffer
 
@@ -517,9 +517,10 @@ public class PacketBuilderImpl implements PacketBuilder {
       if (signature.length != signatureLength) {
         throw new Gsm0348Exception("The generated signature length doesn't match the expected length");
       }
-      LOGGER.debug("Header: {} length: {}", Util.toHexString(header.array()), header.array().length);
+      LOGGER.debug("Header: {} length: {}", Util.toHexString(header.array()), header.capacity());
 
       if (commandPacketCiphering) {
+
         byte[] cipherData = new byte[COUNTER_SIZE + PADDING_COUNTER_SIZE + signatureLength + dataBytes.length];
         ByteBuffer cipherBuffer = ByteBuffer.wrap(cipherData);
         cipherBuffer.put(counterBytes);
@@ -527,23 +528,21 @@ public class PacketBuilderImpl implements PacketBuilder {
         cipherBuffer.put(signature);
         cipherBuffer.put(dataBytes);
 
-        LOGGER.debug("Ciphering command data: {} length: {}", Util.toHexString(cipherData), cipherData.length);
-        byte[] cipheredData = CipheringManager.encipher(cipheringAlgorithmName, cipheringKey, cipherData);
+        // Cipher aligned on blocksize data, as NoPadding is used now
+        byte[] alignedCipherData = alignDataOnBlockSize(cipherData, cipherBlockSize);
+        LOGGER.debug("Ciphering command data: {} length: {}", Util.toHexString(alignedCipherData), alignedCipherData.length);
+        byte[] cipheredData = CipheringManager.encipher(cipheringAlgorithmName, cipheringKey, alignedCipherData);
         LOGGER.debug("Ciphered command data: {} length: {}", Util.toHexString(cipheredData), cipheredData.length);
 
         final byte[] clearHeader = new byte[headerLengthAndIdSize + SPI_SIZE + KIC_SIZE + KID_SIZE + TAR_SIZE];
         System.arraycopy(header.array(), 0, clearHeader, 0, clearHeader.length);
         LOGGER.debug("Ciphered command header: {} length: {}", Util.toHexString(clearHeader), clearHeader.length);
 
-        // For padding added by cipher, align back to block size
-        byte[] alignedCipheredData = alignCipherBlockSize(cipheredData, cipherData.length + paddingCounter);
-        LOGGER.debug("Ciphered command data padding removed: {} length: {}", Util.toHexString(alignedCipheredData), alignedCipheredData.length);
-
-        byte[] result = createPacket(cpi, clearHeader, alignedCipheredData);
+        byte[] result = createPacket(cpi, clearHeader, cipheredData);
         LOGGER.debug("Ciphered command packet created: {} length: {}", Util.toHexString(result), result.length);
         return result;
       }
-      LOGGER.debug("Command header: {} length: {}", Util.toHexString(header.array()), header.array().length);
+      LOGGER.debug("Command header: {} length: {}", Util.toHexString(header.array()), header.capacity());
       byte[] result = createPacket(cpi, header.array(), dataBytes);
       LOGGER.debug("Command packet created: {} length: {}", Util.toHexString(result), result.length);
       return result;
@@ -575,12 +574,12 @@ public class PacketBuilderImpl implements PacketBuilder {
     if (responsePacketSigning && (signatureKey == null)) {
       throw new PacketBuilderConfigurationException("Signing is enabled - signature key must be specified");
     }
-    if (counter == null && usingCounters) {
-      throw new PacketBuilderConfigurationException("Counters are null and they are required by configuration");
+    if (counter == null && usingCounter) {
+      throw new PacketBuilderConfigurationException("Counter is null and required by configuration");
     }
     if (counter != null && counter.length != COUNTER_SIZE) {
-      throw new PacketBuilderConfigurationException("Counters size mismatch. Current = "
-          + (counter != null ? counter.length : "counter == null") + ". Required:" + COUNTER_SIZE);
+      throw new PacketBuilderConfigurationException("Counter size mismatch. Current is "
+          + (counter != null ? counter.length : "null") + ", required is " + COUNTER_SIZE);
     }
 
     try {
@@ -592,7 +591,7 @@ public class PacketBuilderImpl implements PacketBuilder {
 
       byte[] signature = new byte[signatureLength];
       byte[] dataBytes = (data == null) ? new byte[0] : data;
-      byte[] counterBytes = usingCounters ? counter : new byte[COUNTER_SIZE];
+      byte[] counterBytes = usingCounter ? counter : new byte[COUNTER_SIZE];
       int paddingCounter = 0;
 
       ByteBuffer header = createHeaderOneByteLength(BYTES_NULL, RESPONSE_HEADER_SIZE_WITHOUT_SIGNATURE + signatureLength);
@@ -624,7 +623,7 @@ public class PacketBuilderImpl implements PacketBuilder {
 
       switch (cardProfile.getTransportProtocol()) {
         case SMS_PP:
-          rpi = SMS_RPI;
+          rpi = BYTES_NULL;
           rpl = Util.encodeTwoBytesLength(length);
           break;
         case SMS_CB:
@@ -639,34 +638,29 @@ public class PacketBuilderImpl implements PacketBuilder {
           rpl = Util.encodeLength(length);
           break;
         default:
-          throw new PacketBuilderConfigurationException("Transport protocol not set or implemented");
+          throw new PacketBuilderConfigurationException("Transport " + cardProfile.getTransportProtocol() + " not set or implemented");
       }
 
       if (responsePacketSigning) {
 
-        ByteBuffer signData = ByteBuffer.allocate(
-            rpi.length + rpl.length + headerLengthAndIdSize + TAR_SIZE + COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + dataBytes.length + paddingCounter);
-
-//        switch (cardProfile.getTransportProtocol()) {
-//          case SMS_PP:
-//            // rpi is null as it's the UDH
-//            // TODO: Check
-//            // signData.put(RPI_AS_IEDI);
-//            signData.put(rpi);
-//            signData.put(rpl);
-//            // rhl
-//            signData.put((byte) (header.capacity() - headerLengthAndIdSize));
-//            break;
-//          case CAT_TP:
-//          case TCP_IP:
-//            signData.put(rpi);
-//            signData.put(rpl);
-//            signData.put((byte) (header.capacity() - headerLengthAndIdSize));
-//            break;
-//          default:
-//            throw new PacketBuilderConfigurationException("Transport protocol not set or implemented");
-//        }
-        signData.put(rpi);
+        ByteBuffer signData;
+        switch (cardProfile.getTransportProtocol()) {
+          case SMS_PP:
+            // rpi is null as it's the UDH 027100
+            signData = ByteBuffer.allocate(
+                SMS_RPI.length + rpl.length + headerLengthAndIdSize + TAR_SIZE + COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + dataBytes.length + paddingCounter);
+            signData.put(SMS_RPI);
+            break;
+          case CAT_TP:
+          case TCP_IP:
+          case USSD:
+            signData = ByteBuffer.allocate(
+                rpi.length + rpl.length + headerLengthAndIdSize + TAR_SIZE + COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + dataBytes.length + paddingCounter);
+            signData.put(rpi);
+            break;
+          default:
+            throw new PacketBuilderConfigurationException("Transport " + cardProfile.getTransportProtocol() + " not set or implemented");
+        }
         signData.put(rpl);
         signData.put((byte) (header.capacity() - headerLengthAndIdSize));
 
@@ -696,19 +690,17 @@ public class PacketBuilderImpl implements PacketBuilder {
         cipherBuffer.put(signature);
         cipherBuffer.put(dataBytes);
 
-        LOGGER.debug("Ciphering data[{}]: {}", cipherData.length, Util.toHexString(cipherData));
-        byte[] cipheredData = CipheringManager.encipher(cipheringAlgorithmName, cipheringKey, cipherData);
+        // Cipher aligned on blocksize data, as NoPadding is used now
+        byte[] alignedCipherData = alignDataOnBlockSize(cipherData, cipherBlockSize);
+        LOGGER.debug("Ciphering response data[{}]: {}", alignedCipherData.length, Util.toHexString(alignedCipherData));
+        byte[] cipheredData = CipheringManager.encipher(cipheringAlgorithmName, cipheringKey, alignedCipherData);
         LOGGER.debug("Ciphered response data[{}]: {}", cipheredData.length, Util.toHexString(cipheredData));
 
         final byte[] clearHeader = new byte[headerLengthAndIdSize + TAR_SIZE];
         System.arraycopy(header.array(), 0, clearHeader, 0, clearHeader.length);
 
-        // For padding added by cipher, align back to block size
-        byte[] alignedCipheredData = alignCipherBlockSize(cipheredData, cipherData.length + paddingCounter);
-        LOGGER.debug("Ciphered response data padding removed: {} length: {}", Util.toHexString(alignedCipheredData), alignedCipheredData.length);
-
         LOGGER.debug("Ciphered response header: {} length: {}", Util.toHexString(clearHeader), clearHeader.length);
-        byte[] result = createPacket(rpi, clearHeader, alignedCipheredData);
+        byte[] result = createPacket(rpi, clearHeader, cipheredData);
         LOGGER.debug("Ciphered response packet created: {} length: {}", Util.toHexString(result), result.length);
         return result;
       }
@@ -759,13 +751,13 @@ public class PacketBuilderImpl implements PacketBuilder {
       case USSD:
         cpi = new byte[]{ dataBuffer.get() };
         if (!Arrays.equals(cpi, USSD_CPI)) {
-          throw new Gsm0348Exception("CPI " + Util.toHexString(cpi) + " is not expected");
+          throw new Gsm0348Exception("USSD CPI " + Util.toHexString(cpi) + " is not expected");
         }
         cpl = Util.getEncodedLengthBytes(dataBuffer);
         packetLength = Util.decodeLength(cpl);
         break;
       default:
-        throw new Gsm0348Exception("Transport not implemented");
+        throw new Gsm0348Exception("Transport " + transportProtocol + " not implemented");
     }
 
     if (data.length - cpi.length - cpl.length != packetLength) {
@@ -841,23 +833,21 @@ public class PacketBuilderImpl implements PacketBuilder {
 
     int paddingCounter;
     byte[] packetData;
+
     try {
+
       if (commandPacketCiphering) {
-        byte[] dataEncrypted = new byte[dataBuffer.remaining()];
-        dataBuffer.get(dataEncrypted);
 
-        byte[] deciphered = CipheringManager.decipher(cipheringAlgorithmName, cipheringKey, dataEncrypted);
-        LOGGER.debug("Deciphered: {}", Util.toHexArray(deciphered));
+        byte[] ciphered = new byte[dataBuffer.remaining()];
+        dataBuffer.get(ciphered);
 
-        LOGGER.debug("Deciphered length: {}", deciphered.length);
-        final int correctDecipheredLength = COUNTER_SIZE + PADDING_COUNTER_SIZE + signatureLength;
-        if (deciphered.length < correctDecipheredLength) {
-          // if the signature ends with zero bytes, the decipher padding ZeroBytePadding will throw them away
-          LOGGER.debug("Pad decipher data with {} extra zero bytes to {} bytes",
-              correctDecipheredLength - deciphered.length, correctDecipheredLength);
-          deciphered = Arrays.copyOf(deciphered, correctDecipheredLength);
-          LOGGER.debug("Deciphered: {}", Util.toHexArray(deciphered));
-          LOGGER.debug("Deciphered length: {}", deciphered.length);
+        LOGGER.debug("Ciphered: {} ({} bytes)", Util.toHexArray(ciphered), ciphered.length);
+        byte[] deciphered = CipheringManager.decipher(cipheringAlgorithmName, cipheringKey, ciphered);
+        LOGGER.debug("Deciphered: {} ({} bytes)", Util.toHexArray(deciphered), deciphered.length);
+
+        final int minimumDecipheredLength = COUNTER_SIZE + PADDING_COUNTER_SIZE + signatureLength;
+        if (deciphered.length < minimumDecipheredLength) {
+         throw new Gsm0348Exception("Deciphered data returned not enough data");
         }
 
         final ByteBuffer decipheredBuffer = ByteBuffer.wrap(deciphered);
@@ -915,28 +905,10 @@ public class PacketBuilderImpl implements PacketBuilder {
           case USSD:
             addonAmount = cpi.length + cpl.length + chi.length + chl.length;
             break;
-//          case NORMAL:
-//            addonAmount = 0;
-//            break;
         }
 
         ByteBuffer signData = ByteBuffer.allocate(addonAmount + HEADER_SIZE_WITHOUT_SIGNATURE + packetData.length);
 
-//        switch (cardProfile.getTransportProtocol()) {
-//          case SMS_PP:
-//            signData.put(cpi);
-//            signData.put(cpl);
-//            signData.put(chi);
-//            signData.put(chl);
-//            break;
-//          case CAT_TP:
-//          case TCP_IP:
-//            signData.put(cpi);
-//            signData.put(cpl);
-//            signData.put(chi);
-//            signData.put(chl);
-//            break;
-//        }
         signData.put(cpi);
         signData.put(cpl);
         signData.put(chi);
@@ -1016,6 +988,8 @@ public class PacketBuilderImpl implements PacketBuilder {
     final int packetLength;
     switch (cardProfile.getTransportProtocol()) {
       case SMS_PP:
+        // As in 3GPP 31.115 table 3, the SMS_PP response doesn't contain the 027100 RPI
+        // See createPacket
         rpi = BYTES_NULL;
         rpl = Util.getTwoBytesLengthBytes(dataBuffer);
         packetLength = Util.decodeLengthTwo(rpl);
@@ -1032,7 +1006,7 @@ public class PacketBuilderImpl implements PacketBuilder {
       case USSD:
         rpi = new byte[]{ dataBuffer.get() };
         if (!Arrays.equals(rpi, USSD_RPI)) {
-          throw new Gsm0348Exception("RPI " + Util.toHexString(rpi) + " is not expected");
+          throw new Gsm0348Exception("USSD RPI " + Util.toHexString(rpi) + " is not expected");
         }
         rpl = Util.getEncodedLengthBytes(dataBuffer);
         packetLength = Util.decodeLength(rpl);
@@ -1042,7 +1016,7 @@ public class PacketBuilderImpl implements PacketBuilder {
     }
 
     if (data.length - rpi.length - rpl.length != packetLength) {
-      throw new Gsm0348Exception("Length of raw data doesnt match packet length. Expected " + packetLength + " but found "
+      throw new Gsm0348Exception("Length of raw data doesn't match packet length. Expected " + packetLength + " but found "
           + (data.length - rpi.length - rpl.length));
     }
 
@@ -1074,24 +1048,23 @@ public class PacketBuilderImpl implements PacketBuilder {
     byte[] packetData;
 
     try {
+
       if (responsePacketCiphering) {
+
         dataBuffer.position(positionCiphering);
         byte[] ciphered = new byte[dataBuffer.remaining()];
         dataBuffer.get(ciphered);
 
-        LOGGER.debug("ciphered: {}", Util.toHexArray(ciphered));
+        LOGGER.debug("Ciphered: {} ({} bytes)", Util.toHexArray(ciphered), ciphered.length);
         byte[] deciphered = CipheringManager.decipher(cipheringAlgorithmName, cipheringKey, ciphered);
 
-        final int correctDecipheredLength = COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + signatureLength;
-        if (deciphered.length < correctDecipheredLength) {
-          // if the signature ends with zero bytes, the decipher padding ZeroBytePadding will throw them away
-          LOGGER.debug("Pad decipher data with {} extra zero bytes to {} bytes",
-              correctDecipheredLength - deciphered.length, correctDecipheredLength);
-          deciphered = Arrays.copyOf(deciphered, COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + signatureLength);
+        final int minimumDecipheredLength = COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + signatureLength;
+        if (deciphered.length < minimumDecipheredLength) {
+          throw new Gsm0348Exception("Deciphered response data returned not enough data");
         }
 
         ByteBuffer decipheredBuffer = ByteBuffer.wrap(deciphered);
-        LOGGER.debug("deciphered: {}", Util.toHexArray(deciphered));
+        LOGGER.debug("Deciphered: {} ({} bytes)", Util.toHexArray(deciphered), deciphered.length);
 
         decipheredBuffer.get(counter);
         LOGGER.debug("Counter: {}", Util.toHexArray(counter));
@@ -1136,40 +1109,33 @@ public class PacketBuilderImpl implements PacketBuilder {
       LOGGER.debug("Packet data: {}", Util.toHexArray(packetData));
 
       if (responsePacketSigning) {
-        int addonAmount = 0;
-        switch (cardProfile.getTransportProtocol()) {
-          case SMS_PP:
-            addonAmount = SMS_RPI.length + rpl.length + rhi.length + rhl.length;
-            break;
-          case CAT_TP:
-          case TCP_IP:
-          case USSD:
-            addonAmount = rpi.length + rpl.length + rhi.length + rhl.length;
-            break;
-          default:
-            throw new Gsm0348Exception("Transport " + cardProfile.getTransportProtocol() + " not implemented");
-        }
 
-        ByteBuffer signData = ByteBuffer.allocate(addonAmount + TAR_SIZE + COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + packetData.length);
+        final ByteBuffer signData;
 
         switch (cardProfile.getTransportProtocol()) {
           case SMS_PP:
+            // In order to achieve a modulo 8 length of the data before the RC/CC/DS fiel in the Response Header,
+            // the Length of the Response Packet, the Length of the Response Header
+            // and the three preceding octets (UDHL, IEIa and IEIDLa defined in TS 23.040 [3]) shall be included
+            // in the calculation of RC/CC/DS if used.
+            signData = ByteBuffer.allocate(
+                SMS_RPI.length + rpl.length + rhi.length + rhl.length + TAR_SIZE + COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + packetData.length);
             signData.put(SMS_RPI);
-            signData.put(rpl);
-            signData.put(rhi);
-            signData.put(rhl);
             break;
           case CAT_TP:
           case TCP_IP:
           case USSD:
+            signData = ByteBuffer.allocate(
+                rpi.length + rpl.length + rhi.length + rhl.length + TAR_SIZE + COUNTER_SIZE + PADDING_COUNTER_SIZE + STATUS_CODE_SIZE + packetData.length);
             signData.put(rpi);
-            signData.put(rpl);
-            signData.put(rhi);
-            signData.put(rhl);
             break;
           default:
             throw new Gsm0348Exception("Transport " + cardProfile.getTransportProtocol() + " not implemented");
         }
+
+        signData.put(rpl);
+        signData.put(rhi);
+        signData.put(rhl);
 
         signData.put(tar);
         signData.put(counter);
@@ -1199,7 +1165,7 @@ public class PacketBuilderImpl implements PacketBuilder {
       packet.setData(packetData);
       packet.setHeader(packetHeader);
 
-      LOGGER.debug("Response Packet recovered: {}", packet);
+      LOGGER.debug("Response packet recovered: {}", packet);
       return packet;
 
     } catch (GeneralSecurityException e) {
@@ -1212,16 +1178,17 @@ public class PacketBuilderImpl implements PacketBuilder {
     switch (transportProtocol) {
       case SMS_CB:
       case SMS_PP:
-        return createPacketWithoutIdWithTwoBytesLength(first, second);
+        return createPacketWithTwoBytesLength(first, second);
       case CAT_TP:
       case TCP_IP:
       case USSD:
-        return createPacketWithIdAndLength(pi, first, second);
+        return createPacketWithEncodedLength(pi, first, second);
     }
     throw new Gsm0348Exception("Not implemented");
   }
 
-  private byte[] createPacketWithoutIdWithTwoBytesLength(final byte[] first, final byte[] second) {
+  private byte[] createPacketWithTwoBytesLength(final byte[] first, final byte[] second) {
+    // CPI or RPI is always NULL for SMS
     // first contains CHI/CHL or RHI/RHL, but not the CPI/CPL or RPI/RPL
     int length = first.length + second.length;
     byte[] pi = BYTES_NULL;
@@ -1229,7 +1196,7 @@ public class PacketBuilderImpl implements PacketBuilder {
     return createPacket(pi, pl, first, second);
   }
 
-  private byte[] createPacketWithIdAndLength(final byte[] pi, final byte[] first, final byte[] second) {
+  private byte[] createPacketWithEncodedLength(final byte[] pi, final byte[] first, final byte[] second) {
     // first contains CHI/CHL or RHI/RHL, but not the CPI/CPL or RPI/RPL
     int length = first.length + second.length;
     byte[] pl = Util.encodeLength(length);
@@ -1276,19 +1243,14 @@ public class PacketBuilderImpl implements PacketBuilder {
     return dataWithoutPadding;
   }
 
-  private byte[] alignCipherBlockSize(final byte[] ciphered, final int length)
-      throws Gsm0348Exception {
-    // For padding added by cipher, align back to block size (AES output size = 32 bytes for 16 bytes block size)
-    // length is new length, aligned on block size
-    if (ciphered.length < length) {
-      throw new Gsm0348Exception("Ciphered data cannot be aligned to " + length + "bytes");
+  private byte[] alignDataOnBlockSize(final byte[] data, final int blockSize) {
+    final int newLength = aligned(data.length, blockSize);
+    if (newLength > data.length) {
+      final byte[] dataPadded = new byte[newLength];
+      System.arraycopy(data, 0, dataPadded, 0, data.length);
+      return dataPadded;
     }
-    if (ciphered.length > length) {
-      final byte[] cipheredPaddingRemoved = new byte[length];
-      System.arraycopy(ciphered, 0, cipheredPaddingRemoved, 0, cipheredPaddingRemoved.length);
-      return cipheredPaddingRemoved;
-    }
-    return ciphered;
+    return data;
   }
 
   ByteBuffer createHeader(final int headerLength)
@@ -1304,5 +1266,13 @@ public class PacketBuilderImpl implements PacketBuilder {
       default:
         throw new Gsm0348Exception("Transport not implemented");
     }
+  }
+
+  private int aligned(final int length, final int blockSize) {
+    final int align = length % blockSize;
+    if (0 != align) {
+      return length + blockSize - align;
+    }
+    return length;
   }
 }

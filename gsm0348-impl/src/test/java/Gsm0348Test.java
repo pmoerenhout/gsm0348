@@ -119,10 +119,10 @@ public class Gsm0348Test {
     return cardProfile;
   }
 
-  private static CardProfile createProfileDes(final boolean cipher,
+  private static CardProfile createProfileDes(final TransportProtocol transportProtocol, final boolean cipher,
                                               final SynchroCounterMode synchroCounterMode) {
     CardProfile cardProfile = new CardProfile();
-    cardProfile.setTransportProtocol(TransportProtocol.SMS_PP);
+    cardProfile.setTransportProtocol(transportProtocol);
     cardProfile.setCipheringAlgorithm(null);
     cardProfile.setSignatureAlgorithm(null);
     cardProfile.setTAR(new byte[]{ (byte) 0xb2, 0x05, 0x02 });
@@ -198,7 +198,7 @@ public class Gsm0348Test {
      * Or RAM Applet.
      */
     byte[] data = new byte[]{ 1, 2, 3, 4, 5 };
-    byte[] counters = new byte[]{ 0, 0, 0, 0, 2 };
+    byte[] counter = new byte[]{ 0, 0, 0, 0, 2 };
 
     /*
      * Security keys. Mostly produced from master keys. See ICCIDKeyGenerator.
@@ -206,7 +206,7 @@ public class Gsm0348Test {
     byte[] cipheringKey = new byte[]{ 0, 0, 0, 0, 0, 0, 0, 0 };
     byte[] signatureKey = new byte[]{ 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    byte[] packet = packetBuilder.buildCommandPacket(data, counters, cipheringKey, signatureKey);
+    byte[] packet = packetBuilder.buildCommandPacket(data, counter, cipheringKey, signatureKey);
 
     CommandPacket recoveredPacket = packetBuilder.recoverCommandPacket(packet, cipheringKey, signatureKey);
 
@@ -449,15 +449,16 @@ public class Gsm0348Test {
 
   @Test
   public void should_build_response_packet() throws Exception {
-    byte[] data = new byte[]{ (byte) 0x90, (byte) 0x00 };
+    byte[] data = new byte[]{ (byte) 0x01, (byte) 0x90, (byte) 0x00 };
     byte[] responsePacketBytes = packetBuilder.buildResponsePacket(data, null, cipheringKey, signatureKey, ResponsePacketStatus.CIPHERING_ERROR);
 
-    Assert.assertArrayEquals(new byte[]{ (byte) 0x00, 0x0D, 0x0A, (byte) 0xB0, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, (byte) 0x90, 0x00 },
+    Assert.assertArrayEquals(
+        new byte[]{ (byte) 0x00, 0x0E, 0x0A, (byte) 0xB0, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x01, (byte) 0x90, 0x00 },
         responsePacketBytes);
   }
 
   @Test
-  public void should_build_response_packet_cc_aes_cmac_64_with_lengths_and_udhl() throws Exception {
+  public void should_build_sms_pp_response_packet_cc_aes_cmac_64() throws Exception {
     CardProfile cardProfile = createProfileAes(TransportProtocol.SMS_PP, false, SynchroCounterMode.NO_COUNTER);
 
     // The AES signature key
@@ -496,6 +497,27 @@ public class Gsm0348Test {
     Assert.assertEquals(0x00, responsePacket.getHeader().getPaddingCounter());
     Assert.assertEquals(POR_OK, responsePacket.getHeader().getResponseStatus());
     Assert.assertArrayEquals(new byte[]{ (byte) 0xab, (byte) 0x07, (byte) 0x80, (byte) 0x01, (byte) 0x01, (byte) 0x23, (byte) 0x02, (byte) 0x90, (byte) 0x00 },
+        responsePacket.getData());
+  }
+
+  @Test
+  public void should_recover_response() throws Exception {
+    CardProfile cardProfile = createProfileDes(TransportProtocol.SMS_PP, true, SynchroCounterMode.COUNTER_REPLAY_OR_CHECK_INCREMENT);
+    cardProfile.getSPI().setCommandSPI(CommandSPICoder.encode((byte) 0x16));
+    cardProfile.getSPI().setResponseSPI(ResponseSPICoder.encode((byte) 0x11));
+    final byte[] cipherKey = Hex.decode("FBF4F3446B85A11BA5C2203425BABE4E");
+    final byte[] signatureKey = Hex.decode("82D42649147EE723260F957786EDB172");
+    packetBuilder = PacketBuilderFactory.getInstance(cardProfile);
+
+    byte[] responsePacketBytes = Hex.decode("00140A00000048B0E9A947EEE0A66D05D526A6E7EB44");
+    ResponsePacket responsePacket = packetBuilder.recoverResponsePacket(responsePacketBytes, cipherKey, signatureKey);
+
+    Assert.assertEquals(ResponsePacketStatus.POR_OK, responsePacket.getHeader().getResponseStatus());
+    Assert.assertArrayEquals(new byte[]{ (byte) 0x00, 0x00, 0x00 }, responsePacket.getHeader().getTAR());
+    Assert.assertArrayEquals(new byte[]{ 0x00, 0x00, 0x00, 0x00, 0x1a }, responsePacket.getHeader().getCounter());
+    Assert.assertEquals(0x06, responsePacket.getHeader().getPaddingCounter());
+    Assert.assertEquals(POR_OK, responsePacket.getHeader().getResponseStatus());
+    Assert.assertArrayEquals(new byte[]{ (byte) 0x01, (byte) 0x6e, (byte) 0x00 },
         responsePacket.getData());
   }
 
