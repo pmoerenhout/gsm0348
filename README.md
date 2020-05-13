@@ -10,15 +10,17 @@ Secured Packets contain application messages to which certain mechanisms accordi
 Application messages are commands or data exchanged between an application resident in or behind the GSM/3G/4G PLMN and on the SIM/UICC.
 
 ## History
-The project was originally developed by Victor Platov. Initially the code was hosted on Google Code (https://code.google.com/archive/p/gsm0348/). After Google shutdown Google Code, the code was moved to GitHub (https://github.com/TapuGithub/gsm0348).
+The project was originally developed by Victor Platov. Initially the code was hosted on Google Code (https://code.google.com/archive/p/gsm0348/).
+After Google shutdown Google Code, the code was moved to GitHub (https://github.com/TapuGithub/gsm0348).
 Finally, the code was adopted by the Open Telecoms project.
 
 ## News
 
+0. Use NoPadding ciphers to retrieve padding data when data or signature ends with zeros.
 0. Replaced the SecurityBytesType with TransportProtocol enum to support the different formats.
 0. Added the proprietary XOR4 and XOR8 signing algorithms.
 0. Using the SMS implementation, use the SecurityBytesType.WITH_LENGTHS.
-0. Minimum Java is now 1.7, rewrite using ByteBuffer. The goal is to support ETSI TS 102 225, ETSI TS 131 115, and 3GPP TS 31.115.
+0. Minimum Java is now 1.7, rewrite using ByteBuffer. The goal is to fully support ETSI TS 102 225, ETSI TS 131 115, and 3GPP TS 31.115.
 0. Added AES ciphering and RC signatures, including proprietary implementation XOR4 and XOR8.
 0. Moved to the Open Telecoms GitHub and published in Maven Central repository.
 0. TODO: TCP/IP identification packet and digital signatures.
@@ -39,10 +41,11 @@ The Response Packet will be returned to the Sending Entity, subject to constrain
 ![System overview](/resources/system-overview.png?raw=true "System overview")
 
 ### The project
-This project designed to help building Receiving/Sending Entity. It provides library for construction of Secured Packets with all required security procedures - signing and ciphering, padding, redundancy checking and etc.
+This project designed to help building an Receiving/Sending Entity.
+It provides a library for construction of Secured Packets with all required security procedures - signing and ciphering, padding, redundancy checking and etc.
 
 ### Capability
-Short Message Service Point-to-Point (SMS-PP), Cell Broadcast (SMS-CB), CAT_TP and TCP/IP (HTTPS) are supported, except for the identification packer for TCP/IP.
+Short Message Service Point-to-Point (SMS-PP), Cell Broadcast (SMS-CB), USSD, CAT_TP and TCP/IP (HTTPS) are supported, except for the identification packer for TCP/IP.
 
 ### Links
 * [ETSI TS 102 225 v13.0.0](https://www.etsi.org/deliver/etsi_ts/102200_102299/102225/13.00.00_60/ts_102225v130000p.pdf)
