@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.opentelecoms.gsm0348</groupId>
     <artifactId>gsm0348</artifactId>
-    <version>1.2.10-SNAPSHOT</version>
+    <version>1.3.0</version>
   </parent>
   <artifactId>gsm0348-api</artifactId>
   <name>GSM 03.48 :: API</name>
@@ -22,10 +22,12 @@
 					</execution>
 				</executions>
 			  <configuration>
-				  <schemaFiles>gsm0348.xsd</schemaFiles>
-					<schemaDirectory>src/main/resources</schemaDirectory>
+          <sources>
+            <source>src/main/resources/gsm0348.xsd</source>
+          </sources>
 					<outputDirectory>src/main/java/</outputDirectory>
 					<clearOutputDir>false</clearOutputDir>
+          <createJavaDocAnnotations>true</createJavaDocAnnotations>
 					<packageName>org.opentelecoms.gsm0348.api.model</packageName>
 				</configuration>
 			</plugin> -->

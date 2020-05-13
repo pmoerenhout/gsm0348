@@ -3,6 +3,7 @@ package org.opentelecoms.gsm0348.impl.crypto.mac;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.snksoft.crc.CRC;
@@ -76,6 +77,7 @@ public class CRC32Test {
     }
   }
 
+  @Ignore
   @Test
   public void create_table_2() throws Exception {
     final CRC.Parameters crcParams = new CRC.Parameters(16, 4129L, 0, true, true, 0);

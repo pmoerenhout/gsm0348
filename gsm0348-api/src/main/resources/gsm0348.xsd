@@ -166,6 +166,8 @@
       <xsd:enumeration value='TRIPLE_DES_CBC_3_KEYS'/>
       <xsd:enumeration value='RESERVED'/>
       <xsd:enumeration value='AES_CMAC'/>
+      <xsd:enumeration value='XOR4'/>
+      <xsd:enumeration value='XOR8'/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -202,11 +204,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="SecurityBytesType">
+  <xsd:simpleType name="TransportProtocol">
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value='WITH_LENGHTS'/>
-      <xsd:enumeration value='WITH_LENGHTS_AND_UDHL'/>
-      <xsd:enumeration value='NORMAL'/>
+      <xsd:enumeration value='SMS_PP'/>
+      <xsd:enumeration value='SMS_CB'/>
+      <xsd:enumeration value='CAT_TP'/>
+      <xsd:enumeration value='TCP_IP'/>
+      <xsd:enumeration value='USSD'/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -242,24 +246,16 @@
     </xsd:all>
   </xsd:complexType>
 
-  <xsd:group name="MasterKeys">
-    <xsd:sequence>
-      <xsd:element name="CipheringMasterKey" type="xsd:hexBinary" maxOccurs="1" minOccurs="1"/>
-      <xsd:element name="SignatureMasterKey" type="xsd:hexBinary" maxOccurs="1" minOccurs="1"/>
-    </xsd:sequence>
-  </xsd:group>
-
   <xsd:complexType name="CardProfile">
     <xsd:sequence>
       <xsd:element name="Name" type="xsd:string" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="TransportProtocol" type="TransportProtocol" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="KIC" type="KIC" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="KID" type="KID" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="SPI" type="SPI" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="TAR" type="TAR" minOccurs="1" maxOccurs="1"/>
-      <xsd:element name="SecurityBytesType" type="SecurityBytesType" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="SignatureAlgorithm" type="xsd:string" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="CipheringAlgorithm" type="xsd:string" minOccurs="1" maxOccurs="1"/>
-      <xsd:group ref="MasterKeys" maxOccurs="1" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 

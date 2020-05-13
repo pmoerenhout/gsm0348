@@ -77,16 +77,16 @@ public class CardProfileCoder {
       case DES:
         switch (kic.getCipheringAlgorithmMode()) {
           case DES_CBC:
-            newCardProfile.setCipheringAlgorithm("DES/CBC/ZeroBytePadding");
+            newCardProfile.setCipheringAlgorithm("DES/CBC/NoPadding");
             break;
 
           case DES_ECB:
-            newCardProfile.setCipheringAlgorithm("DES/ECB/ZeroBytePadding");
+            newCardProfile.setCipheringAlgorithm("DES/ECB/NoPadding");
             break;
 
           case TRIPLE_DES_CBC_2_KEYS:
           case TRIPLE_DES_CBC_3_KEYS:
-            newCardProfile.setCipheringAlgorithm("DESede/CBC/ZeroBytePadding");
+            newCardProfile.setCipheringAlgorithm("DESede/CBC/NoPadding");
             break;
 
           default:
@@ -97,7 +97,7 @@ public class CardProfileCoder {
         // AES shall be used together with counter settings (b5 and b4 of the first octet of SPI) 10 or 11.
         switch (kic.getCipheringAlgorithmMode()) {
           case AES_CBC:
-            newCardProfile.setCipheringAlgorithm("AES/CBC/ZeroBytePadding");
+            newCardProfile.setCipheringAlgorithm("AES/CBC/NoPadding");
             break;
           default:
         }

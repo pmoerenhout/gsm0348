@@ -7,7 +7,8 @@ import org.opentelecoms.gsm0348.api.model.KIC;
 import org.opentelecoms.gsm0348.impl.CodingException;
 
 public class KICCoder {
-  public static byte decode(KIC kic) throws CodingException {
+
+  public static byte decode(final KIC kic) throws CodingException {
     int algImpl = 0;
     int algMode = 0;
     byte keysetID = kic.getKeysetID();
@@ -16,19 +17,21 @@ public class KICCoder {
       throw new CodingException("Cannot decode KIC. KIC keySetID cannot be <0 and >15");
     }
 
-    switch (kic.getAlgorithmImplementation()) {
-      case ALGORITHM_KNOWN_BY_BOTH_ENTITIES:
-        algImpl = 0;
-        break;
-      case DES:
-        algImpl = 1;
-        break;
-      case AES:
-        algImpl = 2;
-        break;
-      case PROPRIETARY_IMPLEMENTATIONS:
-        algImpl = 3;
-        break;
+    if (kic.getAlgorithmImplementation() != null) {
+      switch (kic.getAlgorithmImplementation()) {
+        case ALGORITHM_KNOWN_BY_BOTH_ENTITIES:
+          algImpl = 0;
+          break;
+        case DES:
+          algImpl = 1;
+          break;
+        case AES:
+          algImpl = 2;
+          break;
+        case PROPRIETARY_IMPLEMENTATIONS:
+          algImpl = 3;
+          break;
+      }
     }
 
     if (kic.getCipheringAlgorithmMode() != null) {
@@ -49,12 +52,10 @@ public class KICCoder {
       }
     }
 
-    byte result = (byte) (algImpl + (algMode << 2) + (keysetID << 4));
-
-    return result;
+    return (byte) (algImpl + (algMode << 2) + (keysetID << 4));
   }
 
-  public static KIC encode(byte kic) throws CodingException {
+  public static KIC encode(final byte kic) throws CodingException {
     KIC result = new KIC();
 
     final int algImpl = kic & 0x03;
