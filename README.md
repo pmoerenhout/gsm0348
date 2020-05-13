@@ -62,12 +62,12 @@ Short Message Service Point-to-Point (SMS-PP), Cell Broadcast (SMS-CB), USSD, CA
    <dependency>
       <groupId>org.opentelecoms.gsm0348</groupId>
       <artifactId>gsm0348-api</artifactId>
-      <version>1.3.0</version>
+      <version>1.3.1</version>
    </dependency>
    <dependency>
       <groupId>org.opentelecoms.gsm0348</groupId>
       <artifactId>gsm0348-impl</artifactId>
-      <version>1.3.0</version>
+      <version>1.3.1</version>
    </dependency>
 </dependencies>
 ```
@@ -79,9 +79,11 @@ mvn clean deploy
 ```
 For a proper release:
 ```
-mvn versions:set -DnewVersion=1.3.0
-git tag -a 1.3.0 -m "1.3.0"
-git push origin --tags
+mvn versions:set -DnewVersion=1.3.1
+git commit -m "Set version to release 1.3.1"
+git push origin
+git tag -a 1.3.1 -m "1.3.1"
+git push --tags origin
 mvn clean deploy -P release
 mvn nexus-staging:release
 # Or when something went wrong
