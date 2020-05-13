@@ -453,4 +453,5 @@ public class PacketBuilderImplTest {
     COMMAND,
     RESPONSE
   }
+
 }
