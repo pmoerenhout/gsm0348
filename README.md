@@ -80,12 +80,15 @@ mvn clean deploy
 For a proper release:
 ```
 mvn versions:set -DnewVersion=1.3.1
-git commit -m "Set version to release 1.3.1"
+git commit -a -m "Set version to release 1.3.1"
 git push origin
 git tag -a 1.3.1 -m "1.3.1"
 git push --tags origin
 mvn clean deploy -P release
 mvn nexus-staging:release
+mvn versions:set -DnewVersion=1.3.1-SNAPSHOT
+git commit -a -m "Set version to 1.3.1-SNAPSHOT"
+
 # Or when something went wrong
 mvn nexus-staging:drop
 ```
